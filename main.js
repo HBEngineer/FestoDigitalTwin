@@ -1,5 +1,5 @@
 // ==========================================
-// 1. YOUR HIVEMQ CLOUD CREDENTIALS
+// 1. HIVEMQ CLOUD CREDENTIALS
 // ==========================================
 const HIVEMQ_HOST = "0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud";
 const HIVEMQ_PORT = 8884;
@@ -17,7 +17,7 @@ scene.background = new THREE.Color(0xf4f6f9);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 
-// Custom Saved Camera Position
+// Saved Camera Position
 camera.position.set(-0.32, 0.83, 0.97);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -28,8 +28,6 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-
-// Saved Tone Mapping Exposure
 renderer.toneMappingExposure = 1.2;
 
 container.appendChild(renderer.domElement);
@@ -37,7 +35,7 @@ container.appendChild(renderer.domElement);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// --- SAVED LIGHTING SETUP ---
+// --- LIGHTING SETUP ---
 
 // 1. Hemisphere Light
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.8);
@@ -109,7 +107,7 @@ let targetBS = 0;
 let targetTB = 0;
 
 const SCALE_FACTOR = 1;
-const LERP_FACTOR = 0.08;
+const LERP_FACTOR = 0.08; // Smooth movement interpolation factor
 
 const loader = new THREE.GLTFLoader();
 loader.load(
@@ -186,12 +184,14 @@ window.addEventListener('resize', () => {
 function updateSliderPosition(sliderName, positionVal) {
   if (sliderName === 'SliderBS') {
     targetBS = positionVal;
-    document.getElementById('val-bs').innerText = positionVal;
+    const valBsElem = document.getElementById('val-bs');
+    if (valBsElem) valBsElem.innerText = `${positionVal} mm`;
   }
 
   if (sliderName === 'SliderTB') {
     targetTB = positionVal;
-    document.getElementById('val-tb').innerText = positionVal;
+    const valTbElem = document.getElementById('val-tb');
+    if (valTbElem) valTbElem.innerText = `${positionVal} mm`;
   }
 }
 
@@ -209,9 +209,17 @@ const client = mqtt.connect(brokerUrl, {
 
 client.on('connect', () => {
   console.log('Connected to private HiveMQ Cloud!');
-  document.getElementById('status').innerText = 'Connected (Private)';
-  document.getElementById('status').style.color = 'green';
-  document.getElementById('dot').style.backgroundColor = '#00ff00';
+  const statusElem = document.getElementById('status');
+  const dotElem = document.getElementById('dot');
+
+  if (statusElem) {
+    statusElem.innerText = 'Connected';
+    statusElem.style.color = '#2e7d32';
+  }
+  if (dotElem) {
+    dotElem.style.backgroundColor = '#4caf50';
+    dotElem.style.boxShadow = '0 0 10px #4caf50';
+  }
 
   client.subscribe(MQTT_TOPIC, (err) => {
     if (!err) console.log(`Subscribed to topic: ${MQTT_TOPIC}`);
@@ -237,7 +245,29 @@ client.on('message', (topic, message) => {
 
 client.on('error', (err) => {
   console.error('HiveMQ Connection Error:', err);
-  document.getElementById('status').innerText = 'Connection Error';
-  document.getElementById('status').style.color = 'red';
-  document.getElementById('dot').style.backgroundColor = 'red';
+  const statusElem = document.getElementById('status');
+  const dotElem = document.getElementById('dot');
+
+  if (statusElem) {
+    statusElem.innerText = 'Connection Error';
+    statusElem.style.color = '#c62828';
+  }
+  if (dotElem) {
+    dotElem.style.backgroundColor = '#f44336';
+    dotElem.style.boxShadow = '0 0 10px #f44336';
+  }
+});
+
+client.on('offline', () => {
+  const statusElem = document.getElementById('status');
+  const dotElem = document.getElementById('dot');
+
+  if (statusElem) {
+    statusElem.innerText = 'Offline';
+    statusElem.style.color = '#ff9800';
+  }
+  if (dotElem) {
+    dotElem.style.backgroundColor = '#ff9800';
+    dotElem.style.boxShadow = '0 0 10px #ff9800';
+  }
 });

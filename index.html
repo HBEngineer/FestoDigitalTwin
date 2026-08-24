@@ -11,13 +11,9 @@
   <!-- Favicon -->
   <link rel="icon" type="image/x-icon" href="./favicon.ico">
 
-  <!-- Three.js Library -->
+  <!-- Three.js Libraries -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-  <!-- Three.js OrbitControls -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
-  <!-- Three.js GLTFLoader -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
   <!-- MQTT.js Library -->
@@ -25,23 +21,35 @@
 </head>
 <body>
 
-  <!-- WebGL Render Container -->
+  <!-- WebGL Canvas Container -->
   <div id="canvas-container"></div>
 
-  <!-- MQTT Status & Telemetry Overlay Panel -->
+  <!-- Detailed MQTT & Actuator Status Card -->
   <div id="status-card">
+    <div class="card-title">Festo Digital Twin</div>
+    
+    <!-- MQTT Connection Section -->
     <div class="status-header">
       <span id="dot" class="status-dot"></span>
-      <span id="status">Connecting...</span>
+      <span id="status" class="status-text">Connecting...</span>
     </div>
+    
+    <div class="info-row">
+      <span>Broker:</span>
+      <span id="broker-host" class="info-value">HiveMQ Cloud</span>
+    </div>
+
+    <hr class="divider">
+
+    <!-- Actuator Telemetry Section -->
     <div class="readout-group">
       <div class="readout-row">
-        <span>Slider BS:</span>
-        <span id="val-bs" class="readout-value">0</span>
+        <span>Slider BS Target:</span>
+        <span id="val-bs" class="readout-value">0 mm</span>
       </div>
       <div class="readout-row">
-        <span>Slider TB:</span>
-        <span id="val-tb" class="readout-value">0</span>
+        <span>Slider TB Target:</span>
+        <span id="val-tb" class="readout-value">0 mm</span>
       </div>
     </div>
   </div>
