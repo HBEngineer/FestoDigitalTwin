@@ -3,21 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Festo Digital Twin</title>
-  
-  <!-- 1. Load 3D Model Viewer -->
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-  
-  <!-- 2. Load MQTT Client Library for HiveMQ -->
+  <title>Festo Digital Twin - Three.js</title>
+
+  <!-- 1. Load Three.js & Controls/Loaders -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <!-- 2. Load MQTT Client Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
 
   <style>
     body {
       margin: 0;
+      overflow: hidden;
       font-family: Arial, sans-serif;
-      background-color: #f4f4f9;
+      background-color: #1a1a1a;
     }
-    model-viewer {
+    #canvas-container {
       width: 100vw;
       height: 100vh;
     }
@@ -28,7 +31,7 @@
       background: rgba(255, 255, 255, 0.95);
       padding: 15px 20px;
       border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
       z-index: 10;
     }
     .status-dot {
@@ -46,20 +49,15 @@
   <!-- Overlay Control Panel -->
   <div id="dashboard">
     <h3 style="margin-top:0;">Festo Actuators</h3>
-    <p><span id="dot" class="status-dot"></span> <b>MQTT Status:</b> <span id="status">Disconnected</span></p>
+    <p><span id="dot" class="status-dot"></span> <b>HiveMQ Status:</b> <span id="status">Disconnected</span></p>
     <p><b>SliderBS Position:</b> <span id="val-bs">0</span> mm</p>
     <p><b>SliderTB Position:</b> <span id="val-tb">0</span> mm</p>
   </div>
 
-  <!-- 3D Model Canvas -->
-  <model-viewer 
-    id="actuator-viewer" 
-    src="./model/festo_actuators.glb" 
-    camera-controls 
-    shadow-intensity="1">
-  </model-viewer>
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container"></div>
 
-  <!-- Load JavaScript Logic -->
+  <!-- Load Main Logic -->
   <script src="./main.js"></script>
 </body>
 </html>

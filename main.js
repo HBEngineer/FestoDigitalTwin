@@ -2,32 +2,61 @@
 // 1. YOUR HIVEMQ CLOUD CREDENTIALS
 // ==========================================
 const HIVEMQ_HOST = "0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud";
-const HIVEMQ_PORT = 8884;                                  // Secure WebSockets port
-const HIVEMQ_USERNAME = "FestoPLC1";                        // Your HiveMQ credentials username
-const HIVEMQ_PASSWORD = "FestoPLC1";                        // Your HiveMQ credentials password
+const HIVEMQ_PORT = 8884;
+const HIVEMQ_USERNAME = "FestoPLC1";
+const HIVEMQ_PASSWORD = "FestoPLC1";
 const MQTT_TOPIC = "festo/actuators/positions";
 
 // ==========================================
-// 2. 3D MODEL & SCENE SETUP
+// 2. THREE.JS SCENE SETUP
 // ==========================================
-const viewer = document.getElementById('actuator-viewer');
+const container = document.getElementById('canvas-container');
+
+// Scene, Camera, Renderer
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf0f2f5);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(2, 2, 2);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+container.appendChild(renderer.domElement);
+
+// Orbit Controls (Mouse rotation / zoom)
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+// Lighting
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+dirLight.position.set(5, 10, 7);
+scene.add(dirLight);
+
+// ==========================================
+// 3. LOAD GLB MODEL & FIND NODES
+// ==========================================
 let sliderBSNode = null;
 let sliderTBNode = null;
 
-// Store initial baseline positions so displacement moves relative to origin
 let initialBS = { x: 0, y: 0, z: 0 };
 let initialTB = { x: 0, y: 0, z: 0 };
 
-// Conversion factor: millimeters to meters in 3D coordinate space
-const MM_TO_METERS = 0.001; 
+const MM_TO_METERS = 0.001;
 
-// Locate nodes inside <model-viewer> and save starting transforms once loaded
-viewer.addEventListener('load', () => {
-  const sceneSymbol = Object.getOwnPropertySymbols(viewer).find(s => s.description === 'scene');
-  const scene = viewer[sceneSymbol];
+const loader = new THREE.GLTFLoader();
+loader.load(
+  './model/festo_actuators.glb',
+  (gltf) => {
+    const model = gltf.scene;
+    scene.add(model);
 
-  if (scene) {
-    scene.traverse((child) => {
+    // Traversal to find exact sub-nodes
+    model.traverse((child) => {
       if (child.name === 'SliderBS') {
         sliderBSNode = child;
         initialBS = { x: child.position.x, y: child.position.y, z: child.position.z };
@@ -37,34 +66,58 @@ viewer.addEventListener('load', () => {
         initialTB = { x: child.position.x, y: child.position.y, z: child.position.z };
       }
     });
-    console.log('Festo Nodes Found & Baseline Saved:', { sliderBSNode, sliderTBNode });
+
+    console.log('Nodes Loaded:', { sliderBSNode, sliderTBNode });
+
+    // Center camera on loaded model
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    controls.target.copy(center);
+    camera.position.set(center.x + 0.5, center.y + 0.5, center.z + 0.5);
+    controls.update();
+  },
+  undefined,
+  (error) => {
+    console.error('Error loading GLB model:', error);
   }
+);
+
+// Animation / Render loop
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+// Handle browser window resize
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Update node position in 3D space & force frame update
+// ==========================================
+// 4. POSITION UPDATE LOGIC
+// ==========================================
 function updateSliderPosition(sliderName, positionInMM) {
   const positionInMeters = positionInMM * MM_TO_METERS;
 
   if (sliderName === 'SliderBS' && sliderBSNode) {
-    // Modify axis (.x, .y, or .z) based on physical movement orientation
-    sliderBSNode.position.x = initialBS.x + positionInMeters; 
+    // Adjust axis (.x, .y, or .z) based on movement direction
+    sliderBSNode.position.x = initialBS.x + positionInMeters;
     document.getElementById('val-bs').innerText = positionInMM;
-  } 
-  
-  if (sliderName === 'SliderTB' && sliderTBNode) {
-    // Modify axis (.x, .y, or .z) based on physical movement orientation
-    sliderTBNode.position.z = initialTB.z + positionInMeters; 
-    document.getElementById('val-tb').innerText = positionInMM;
   }
 
-  // Force <model-viewer> to redraw the canvas
-  if (typeof viewer.queueRender === 'function') {
-    viewer.queueRender();
+  if (sliderName === 'SliderTB' && sliderTBNode) {
+    // Adjust axis (.x, .y, or .z) based on movement direction
+    sliderTBNode.position.z = initialTB.z + positionInMeters;
+    document.getElementById('val-tb').innerText = positionInMM;
   }
 }
 
 // ==========================================
-// 3. HIVEMQ CLOUD CONNECTION (WSS)
+// 5. HIVEMQ CLOUD CONNECTION (WSS)
 // ==========================================
 const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
@@ -88,13 +141,12 @@ client.on('connect', () => {
 
 client.on('message', (topic, message) => {
   try {
-    // Expecting combined JSON payload: {"SliderBS": 120.5, "SliderTB": 45.0}
     const payload = JSON.parse(message.toString());
-    
+
     if (payload.SliderBS !== undefined) {
       updateSliderPosition('SliderBS', payload.SliderBS);
     }
-    
+
     if (payload.SliderTB !== undefined) {
       updateSliderPosition('SliderTB', payload.SliderTB);
     }
