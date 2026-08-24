@@ -1,34 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Festo Digital Twin</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Festo Digital Twin</title>
+  
+  <!-- 1. Load 3D Model Viewer -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  
+  <!-- 2. Load MQTT Client Library for HiveMQ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
 
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-
-        #info {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: white;
-            padding: 10px;
-            z-index: 100;
-        }
-    </style>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+    }
+    model-viewer {
+      width: 100vw;
+      height: 100vh;
+    }
+    #dashboard {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: red;
+      margin-right: 5px;
+    }
+  </style>
 </head>
-
 <body>
 
-<div id="info">
-    Festo Digital Twin
-</div>
+  <!-- Overlay Control Panel -->
+  <div id="dashboard">
+    <h3 style="margin-top:0;">Festo Actuators</h3>
+    <p><span id="dot" class="status-dot"></span> <b>MQTT Status:</b> <span id="status">Disconnected</span></p>
+    <p><b>SliderBS Position:</b> <span id="val-bs">0</span> mm</p>
+    <p><b>SliderTB Position:</b> <span id="val-tb">0</span> mm</p>
+  </div>
 
-<script type="text/javascript" src="./app.js"></script>
+  <!-- 3D Model Canvas -->
+  <model-viewer 
+    id="actuator-viewer" 
+    src="./model/festo_actuators.glb" 
+    camera-controls 
+    shadow-intensity="1">
+  </model-viewer>
 
-
+  <!-- Load JavaScript Logic -->
+  <script src="./main.js"></script>
 </body>
 </html>
