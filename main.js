@@ -25,12 +25,12 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 container.appendChild(renderer.domElement);
 
-// Orbit Controls (Mouse rotation / zoom)
+// Orbit Controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
 scene.add(ambientLight);
 
 const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
@@ -46,6 +46,7 @@ let sliderTBNode = null;
 let initialBS = { x: 0, y: 0, z: 0 };
 let initialTB = { x: 0, y: 0, z: 0 };
 
+// Scale factor: millimeters to meters in 3D coordinate space
 const MM_TO_METERS = 0.001;
 
 const loader = new THREE.GLTFLoader();
@@ -55,7 +56,6 @@ loader.load(
     const model = gltf.scene;
     scene.add(model);
 
-    // Traversal to find exact sub-nodes
     model.traverse((child) => {
       if (child.name === 'SliderBS') {
         sliderBSNode = child;
@@ -67,7 +67,7 @@ loader.load(
       }
     });
 
-    console.log('Nodes Loaded:', { sliderBSNode, sliderTBNode });
+    console.log('Festo Nodes Loaded & Baselines Saved:', { sliderBSNode, sliderTBNode });
 
     // Center camera on loaded model
     const box = new THREE.Box3().setFromObject(model);
@@ -90,7 +90,6 @@ function animate() {
 }
 animate();
 
-// Handle browser window resize
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
@@ -98,19 +97,19 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 4. POSITION UPDATE LOGIC
+// 4. POSITION UPDATE LOGIC (Z-AXIS)
 // ==========================================
 function updateSliderPosition(sliderName, positionInMM) {
   const positionInMeters = positionInMM * MM_TO_METERS;
 
   if (sliderName === 'SliderBS' && sliderBSNode) {
-    // Adjust axis (.x, .y, or .z) based on movement direction
-    sliderBSNode.position.x = initialBS.x + positionInMeters;
+    // Moved along Z axis relative to initial baseline
+    sliderBSNode.position.z = initialBS.z + positionInMeters;
     document.getElementById('val-bs').innerText = positionInMM;
   }
 
   if (sliderName === 'SliderTB' && sliderTBNode) {
-    // Adjust axis (.x, .y, or .z) based on movement direction
+    // Moved along Z axis relative to initial baseline
     sliderTBNode.position.z = initialTB.z + positionInMeters;
     document.getElementById('val-tb').innerText = positionInMM;
   }
