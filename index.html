@@ -5,31 +5,118 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Festo Digital Twin</title>
 
-  <!-- Relative CSS link -->
-  <link rel="stylesheet" href="./styles.css" />
+  <!-- Silence favicon 404 warning -->
+  <link rel="shortcut icon" href="#" />
+
+  <!-- Relative CSS link (Ensure case matches filename) -->
+  <link rel="stylesheet" href="styles.css" />
 
   <!-- Three.js Core & Addons -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/webxr/ARButton.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/webxr/ARButton.js"></script>
 
   <!-- MQTT Client -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+  <style>
+    /* Inline styles for overlay UI and AR buttons */
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    #status-card {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(4px);
+    }
+
+    .status-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    #dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #ff9800;
+      display: inline-block;
+    }
+
+    #canvas-container {
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Custom iOS AR Quick Look Button styling */
+    .ios-ar-button {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+  </style>
 </head>
 <body>
+
   <!-- Status Overlay -->
-  <div id="status-card" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(255, 255, 255, 0.9); padding: 15px 20px; border-radius: 8px; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-      <span id="dot" style="width: 10px; height: 10px; border-radius: 50%; background-color: #ff9800; display: inline-block;"></span>
+  <div id="status-card">
+    <div class="status-header">
+      <span id="dot"></span>
       <strong id="status" style="color: #e65100;">Connecting...</strong>
     </div>
     <div><strong>SliderBS:</strong> <span id="val-bs">0 mm</span></div>
     <div><strong>SliderTB:</strong> <span id="val-tb">0 mm</span></div>
   </div>
 
-  <div id="canvas-container" style="width: 100vw; height: 100vh; overflow: hidden;"></div>
+  <!-- iOS AR Quick Look Button (Triggers natively on iOS Safari/Chrome) -->
+  <a id="ios-ar-btn" class="ios-ar-button" rel="ar" href="./model/festo_actuators.usdz" style="display: none;">
+    <img src="https://developer.apple.com/ar/3d/glTF/AR_icon.png" width="18" height="18" alt="AR" />
+    <span>View in AR (iOS)</span>
+  </a>
 
+  <!-- 3D Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- iOS vs WebXR Detection Script -->
+  <script>
+    // Detect iOS devices
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    if (isIOS) {
+      // Show native Apple Quick Look button on iPhone/iPad
+      document.getElementById('ios-ar-btn').style.display = 'flex';
+    }
+  </script>
+
+  <!-- Main Application Script -->
   <script src="./main.js"></script>
+
 </body>
 </html>
