@@ -60,7 +60,7 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
 // ==========================================
-// 3. LOAD GLB MODEL & FIND NODES
+// 3. LOAD GLB MODEL & INTERPOLATION SETUP
 // ==========================================
 let sliderBSNode = null;
 let sliderTBNode = null;
@@ -68,7 +68,12 @@ let sliderTBNode = null;
 let initialBS = { x: 0, y: 0, z: 0 };
 let initialTB = { x: 0, y: 0, z: 0 };
 
+// Target positions received via MQTT
+let targetBS = 0;
+let targetTB = 0;
+
 const SCALE_FACTOR = 1;
+const LERP_FACTOR = 0.08; // Adjust between 0.01 (smoother/slower) and 0.2 (faster response)
 
 const loader = new THREE.GLTFLoader();
 loader.load(
@@ -107,8 +112,24 @@ loader.load(
   }
 );
 
+// ==========================================
+// 4. ANIMATION LOOP WITH INTERPOLATION
+// ==========================================
 function animate() {
   requestAnimationFrame(animate);
+
+  // Smoothly lerp SliderBS along Z-axis toward target position
+  if (sliderBSNode) {
+    const targetZ = initialBS.z + (targetBS * SCALE_FACTOR);
+    sliderBSNode.position.z += (targetZ - sliderBSNode.position.z) * LERP_FACTOR;
+  }
+
+  // Smoothly lerp SliderTB along Z-axis toward target position
+  if (sliderTBNode) {
+    const targetZ = initialTB.z + (targetTB * SCALE_FACTOR);
+    sliderTBNode.position.z += (targetZ - sliderTBNode.position.z) * LERP_FACTOR;
+  }
+
   controls.update();
   renderer.render(scene, camera);
 }
@@ -121,24 +142,22 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 4. POSITION UPDATE LOGIC (Z-AXIS)
+// 5. UPDATE TARGET VALUES FROM MQTT
 // ==========================================
 function updateSliderPosition(sliderName, positionVal) {
-  const displacement = positionVal * SCALE_FACTOR;
-
-  if (sliderName === 'SliderBS' && sliderBSNode) {
-    sliderBSNode.position.z = initialBS.z + displacement;
+  if (sliderName === 'SliderBS') {
+    targetBS = positionVal;
     document.getElementById('val-bs').innerText = positionVal;
   }
 
-  if (sliderName === 'SliderTB' && sliderTBNode) {
-    sliderTBNode.position.z = initialTB.z + displacement;
+  if (sliderName === 'SliderTB') {
+    targetTB = positionVal;
     document.getElementById('val-tb').innerText = positionVal;
   }
 }
 
 // ==========================================
-// 5. HIVEMQ CLOUD CONNECTION (WSS)
+// 6. HIVEMQ CLOUD CONNECTION (WSS)
 // ==========================================
 const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
