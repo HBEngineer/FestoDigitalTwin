@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Festo Digital Twin - Lighting Tuning</title>
+  <title>Festo Digital Twin</title>
 
   <!-- Load Three.js & Controls/Loaders -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -42,118 +42,16 @@
       background-color: red;
       margin-right: 5px;
     }
-
-    /* Lighting Tuner Panel */
-    #lighting-panel {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: rgba(20, 20, 20, 0.9);
-      color: #fff;
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-      z-index: 10;
-      width: 280px;
-      font-size: 13px;
-    }
-    #lighting-panel h4 {
-      margin: 0 0 10px 0;
-      color: #007acc;
-      border-bottom: 1px solid #444;
-      padding-bottom: 5px;
-    }
-    .control-group {
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .control-group label {
-      flex: 1;
-    }
-    .control-group input[type="range"] {
-      flex: 1;
-      margin: 0 8px;
-    }
-    .control-group span {
-      width: 35px;
-      text-align: right;
-      font-family: monospace;
-    }
-    button {
-      width: 100%;
-      margin-top: 10px;
-      padding: 8px;
-      background: #007acc;
-      border: none;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    button:hover {
-      background: #005999;
-    }
   </style>
 </head>
 <body>
 
-  <!-- Overlay Control Panel -->
+  <!-- Overlay Dashboard -->
   <div id="dashboard">
     <h3 style="margin-top:0;">Festo Actuators</h3>
     <p><span id="dot" class="status-dot"></span> <b>HiveMQ Status:</b> <span id="status">Disconnected</span></p>
     <p><b>SliderBS Position:</b> <span id="val-bs">0</span> mm</p>
     <p><b>SliderTB Position:</b> <span id="val-tb">0</span> mm</p>
-  </div>
-
-  <!-- Temporary Lighting Controls -->
-  <div id="lighting-panel">
-    <h4>Lighting & Camera Controls</h4>
-
-    <div class="control-group">
-      <label>Exposure:</label>
-      <input type="range" id="exposure" min="0.1" max="3.0" step="0.1" value="1.1">
-      <span id="exp-val">1.1</span>
-    </div>
-
-    <div class="control-group">
-      <label>Key Intensity:</label>
-      <input type="range" id="key-intensity" min="0" max="10" step="0.2" value="3.0">
-      <span id="key-int-val">3.0</span>
-    </div>
-
-    <div class="control-group">
-      <label>Key Pos X:</label>
-      <input type="range" id="key-x" min="-10" max="10" step="0.5" value="3">
-      <span id="key-x-val">3</span>
-    </div>
-
-    <div class="control-group">
-      <label>Key Pos Y:</label>
-      <input type="range" id="key-y" min="-10" max="10" step="0.5" value="-5">
-      <span id="key-y-val">-5</span>
-    </div>
-
-    <div class="control-group">
-      <label>Key Pos Z:</label>
-      <input type="range" id="key-z" min="-10" max="10" step="0.5" value="-5">
-      <span id="key-z-val">-5</span>
-    </div>
-
-    <div class="control-group">
-      <label>Fill Intensity:</label>
-      <input type="range" id="fill-intensity" min="0" max="10" step="0.2" value="1.2">
-      <span id="fill-int-val">1.2</span>
-    </div>
-
-    <div class="control-group">
-      <label>Hemi Intensity:</label>
-      <input type="range" id="hemi-intensity" min="0" max="10" step="0.2" value="1.5">
-      <span id="hemi-int-val">1.5</span>
-    </div>
-
-    <button onclick="logCurrentSettings()">Log Settings to Console</button>
   </div>
 
   <!-- 3D Canvas Container -->

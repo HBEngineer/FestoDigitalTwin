@@ -16,7 +16,9 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf4f6f9);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(-0.13, 0.88, 0.93);
+
+// Custom Saved Camera Position
+camera.position.set(-0.32, 0.83, 0.97);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -26,70 +28,39 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1;
+
+// Saved Tone Mapping Exposure
+renderer.toneMappingExposure = 1.2;
 
 container.appendChild(renderer.domElement);
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// --- LIGHTS ---
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
+// --- SAVED LIGHTING SETUP ---
+
+// 1. Hemisphere Light
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.8);
 hemiLight.position.set(0, 20, 0);
 scene.add(hemiLight);
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 3.0);
-keyLight.position.set(3, -5, -5);
+// 2. Key Directional Light
+const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
+keyLight.position.set(-3, -3.5, -0.5);
 keyLight.castShadow = true;
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+// 3. Fill Light
+const fillLight = new THREE.DirectionalLight(0xffffff, 4.0);
 fillLight.position.set(-5, 5, -5);
 scene.add(fillLight);
 
+// 4. Ambient Light Baseline
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
 // ==========================================
-// 3. UI SLIDER CONTROLS (LIVE UPDATES)
-// ==========================================
-function setupLightingControls() {
-  const bindControl = (id, callback) => {
-    const slider = document.getElementById(id);
-    const display = document.getElementById(id + '-val') || document.getElementById(id.replace('key-', 'key-') + '-val');
-    if (!slider) return;
-    slider.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      if (display) display.innerText = val;
-      callback(val);
-    });
-  };
-
-  bindControl('exposure', (val) => { renderer.toneMappingExposure = val; });
-  bindControl('key-intensity', (val) => { keyLight.intensity = val; });
-  bindControl('key-x', (val) => { keyLight.position.x = val; });
-  bindControl('key-y', (val) => { keyLight.position.y = val; });
-  bindControl('key-z', (val) => { keyLight.position.z = val; });
-  bindControl('fill-intensity', (val) => { fillLight.intensity = val; });
-  bindControl('hemi-intensity', (val) => { hemiLight.intensity = val; });
-}
-
-window.logCurrentSettings = function() {
-  console.log('=== CURRENT LIGHTING & CAMERA SETTINGS ===');
-  console.log(`camera.position.set(${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)});`);
-  console.log(`renderer.toneMappingExposure = ${renderer.toneMappingExposure};`);
-  console.log(`keyLight.intensity = ${keyLight.intensity};`);
-  console.log(`keyLight.position.set(${keyLight.position.x}, ${keyLight.position.y}, ${keyLight.position.z});`);
-  console.log(`fillLight.intensity = ${fillLight.intensity};`);
-  console.log(`hemiLight.intensity = ${hemiLight.intensity};`);
-  console.log('==========================================');
-  alert('Settings logged to browser console (F12)!');
-};
-
-setupLightingControls();
-
-// ==========================================
-// 4. LOAD GLB MODEL & FIND NODES
+// 3. LOAD GLB MODEL & FIND NODES
 // ==========================================
 let sliderBSNode = null;
 let sliderTBNode = null;
@@ -150,7 +121,7 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 5. POSITION UPDATE LOGIC (Z-AXIS)
+// 4. POSITION UPDATE LOGIC (Z-AXIS)
 // ==========================================
 function updateSliderPosition(sliderName, positionVal) {
   const displacement = positionVal * SCALE_FACTOR;
@@ -167,7 +138,7 @@ function updateSliderPosition(sliderName, positionVal) {
 }
 
 // ==========================================
-// 6. HIVEMQ CLOUD CONNECTION (WSS)
+// 5. HIVEMQ CLOUD CONNECTION (WSS)
 // ==========================================
 const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
@@ -179,6 +150,7 @@ const client = mqtt.connect(brokerUrl, {
 });
 
 client.on('connect', () => {
+  console.log('Connected to private HiveMQ Cloud!');
   document.getElementById('status').innerText = 'Connected (Private)';
   document.getElementById('status').style.color = 'green';
   document.getElementById('dot').style.backgroundColor = '#00ff00';
@@ -206,6 +178,7 @@ client.on('message', (topic, message) => {
 });
 
 client.on('error', (err) => {
+  console.error('HiveMQ Connection Error:', err);
   document.getElementById('status').innerText = 'Connection Error';
   document.getElementById('status').style.color = 'red';
   document.getElementById('dot').style.backgroundColor = 'red';
