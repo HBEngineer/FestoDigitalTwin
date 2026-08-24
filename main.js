@@ -8,7 +8,7 @@ const HIVEMQ_PASSWORD = "FestoPLC1";
 const MQTT_TOPIC = "festo/actuators/positions";
 
 // ==========================================
-// 2. THREE.JS SCENE SETUP
+// 2. THREE.JS SCENE & WEBXR SETUP
 // ==========================================
 const container = document.getElementById('canvas-container');
 
@@ -16,11 +16,9 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf4f6f9);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-// Saved Camera Position
 camera.position.set(-0.32, 0.83, 0.97);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
@@ -30,32 +28,45 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
+// Enable WebXR for AR Mode
+renderer.xr.enabled = true;
+
 container.appendChild(renderer.domElement);
+
+// Add AR Button to DOM
+document.body.appendChild(THREE.ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // --- LIGHTING SETUP ---
-
-// 1. Hemisphere Light
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.8);
 hemiLight.position.set(0, 20, 0);
 scene.add(hemiLight);
 
-// 2. Key Directional Light
 const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
 keyLight.position.set(-3, -3.5, -0.5);
 keyLight.castShadow = true;
 scene.add(keyLight);
 
-// 3. Fill Light
 const fillLight = new THREE.DirectionalLight(0xffffff, 4.0);
 fillLight.position.set(-5, 5, -5);
 scene.add(fillLight);
 
-// 4. Ambient Light Baseline
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
+
+// Root container for positioning in AR
+const arGroup = new THREE.Group();
+scene.add(arGroup);
+
+// Hide background when entering AR session
+renderer.xr.addEventListener('sessionstart', () => {
+  scene.background = null;
+});
+renderer.xr.addEventListener('sessionend', () => {
+  scene.background = new THREE.Color(0xf4f6f9);
+});
 
 // ==========================================
 // 3. CREATE BASE PLATE FOR ACTUATORS
@@ -66,12 +77,10 @@ function createActuatorBase(modelBox) {
   modelBox.getSize(size);
   modelBox.getCenter(center);
 
-  // Double size footprint (2.4x) and reduced thickness (0.01 units)
   const baseWidth = size.x * 2.4;
   const baseDepth = size.z * 2.4;
   const baseThickness = 0.01;
 
-  // Dark metallic material for thin plate
   const baseMaterial = new THREE.MeshStandardMaterial({
     color: 0x22252a,
     metalness: 0.85,
@@ -81,7 +90,6 @@ function createActuatorBase(modelBox) {
   const baseGeometry = new THREE.BoxGeometry(baseWidth, baseThickness, baseDepth);
   const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
 
-  // Position plate flush underneath the bottom of the model
   baseMesh.position.set(
     center.x,
     modelBox.min.y - (baseThickness / 2),
@@ -90,7 +98,7 @@ function createActuatorBase(modelBox) {
   baseMesh.receiveShadow = true;
   baseMesh.castShadow = true;
 
-  scene.add(baseMesh);
+  arGroup.add(baseMesh);
 }
 
 // ==========================================
@@ -102,12 +110,11 @@ let sliderTBNode = null;
 let initialBS = { x: 0, y: 0, z: 0 };
 let initialTB = { x: 0, y: 0, z: 0 };
 
-// Target positions received via MQTT
 let targetBS = 0;
 let targetTB = 0;
 
 const SCALE_FACTOR = 1;
-const LERP_FACTOR = 0.08; // Smooth movement interpolation factor
+const LERP_FACTOR = 0.08;
 
 const loader = new THREE.GLTFLoader();
 loader.load(
@@ -133,9 +140,8 @@ loader.load(
       }
     });
 
-    scene.add(model);
+    arGroup.add(model);
 
-    // Compute bounding box and create base automatically
     const box = new THREE.Box3().setFromObject(model);
     createActuatorBase(box);
 
@@ -150,18 +156,14 @@ loader.load(
 );
 
 // ==========================================
-// 5. ANIMATION LOOP WITH INTERPOLATION
+// 5. WEBXR RENDER LOOP
 // ==========================================
-function animate() {
-  requestAnimationFrame(animate);
-
-  // Smoothly lerp SliderBS along Z-axis toward target position
+renderer.setAnimationLoop(() => {
   if (sliderBSNode) {
     const targetZ = initialBS.z + (targetBS * SCALE_FACTOR);
     sliderBSNode.position.z += (targetZ - sliderBSNode.position.z) * LERP_FACTOR;
   }
 
-  // Smoothly lerp SliderTB along Z-axis toward target position
   if (sliderTBNode) {
     const targetZ = initialTB.z + (targetTB * SCALE_FACTOR);
     sliderTBNode.position.z += (targetZ - sliderTBNode.position.z) * LERP_FACTOR;
@@ -169,8 +171,7 @@ function animate() {
 
   controls.update();
   renderer.render(scene, camera);
-}
-animate();
+});
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
