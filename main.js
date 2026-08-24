@@ -14,10 +14,12 @@ const container = document.getElementById('canvas-container');
 
 // Scene, Camera, Renderer
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf4f6f9); // Clean industrial light backdrop
+scene.background = new THREE.Color(0xf4f6f9); // Clean industrial backdrop
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(2, 2, 2);
+
+// Custom Saved Camera Position
+camera.position.set(-0.13, 0.88, 0.93);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -25,10 +27,10 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-// Tone Mapping for realistic material exposure
+// Tone Mapping & Saved Exposure
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.25;
+renderer.toneMappingExposure = 1.1; // Saved value
 
 container.appendChild(renderer.domElement);
 
@@ -36,25 +38,25 @@ container.appendChild(renderer.domElement);
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// --- BRIGHTER LIGHTING SETUP ---
+// --- CUSTOM LIGHTING SETUP ---
 
-// 1. Hemisphere Light (Soft Sky Light + Ground Reflection to eliminate dark shadows under parts)
+// 1. Hemisphere Light (Soft ambient sky/ground fill)
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
 hemiLight.position.set(0, 20, 0);
 scene.add(hemiLight);
 
-// 2. Key Directional Light (Front / Top / Right)
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
-keyLight.position.set(5, 10, 7);
+// 2. Key Light (Custom Position & Intensity)
+const keyLight = new THREE.DirectionalLight(0xffffff, 3.0); // Saved intensity
+keyLight.position.set(3, -5, -5);                           // Saved position
 keyLight.castShadow = true;
 scene.add(keyLight);
 
-// 3. Fill Light (Back / Left to brighten shadowed back faces)
+// 3. Fill Light (Backside fill)
 const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
 fillLight.position.set(-5, 5, -5);
 scene.add(fillLight);
 
-// 4. Ambient Light (Baseline brightness layer)
+// 4. Ambient Baseline Light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
@@ -67,7 +69,7 @@ let sliderTBNode = null;
 let initialBS = { x: 0, y: 0, z: 0 };
 let initialTB = { x: 0, y: 0, z: 0 };
 
-// Multiplier applied to MQTT payload values
+// Scale factor applied to MQTT payloads
 const SCALE_FACTOR = 1; 
 
 const loader = new THREE.GLTFLoader();
@@ -76,7 +78,6 @@ loader.load(
   (gltf) => {
     const model = gltf.scene;
 
-    // Traverse materials to ensure lighting reflects properly on all surfaces
     model.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
@@ -98,11 +99,10 @@ loader.load(
     scene.add(model);
     console.log('Festo Nodes Loaded & Baselines Saved:', { sliderBSNode, sliderTBNode });
 
-    // Center camera on loaded model
+    // Target the center of the model for OrbitControls focusing
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     controls.target.copy(center);
-    camera.position.set(center.x + 0.5, center.y + 0.5, center.z + 0.5);
     controls.update();
   },
   undefined,
