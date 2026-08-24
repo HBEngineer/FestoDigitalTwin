@@ -7,6 +7,7 @@ const HIVEMQ_USERNAME = "FestoPLC1";            // Your HiveMQ credentials usern
 const HIVEMQ_PASSWORD = "FestoPLC1";            // Your HiveMQ credentials password
 const MQTT_TOPIC = "festo/actuators/positions";
 
+
 // ==========================================
 // 2. 3D MODEL & SCENE SETUP
 // ==========================================
@@ -71,10 +72,19 @@ client.on('connect', () => {
 
 client.on('message', (topic, message) => {
   try {
+    // Parse the combined JSON payload: {"SliderBS": 120.5, "SliderTB": 45.0}
     const payload = JSON.parse(message.toString());
-    if (payload.slider && payload.value !== undefined) {
-      updateSliderPosition(payload.slider, payload.value);
+    
+    // Check if SliderBS is in the message and update it
+    if (payload.SliderBS !== undefined) {
+      updateSliderPosition('SliderBS', payload.SliderBS);
     }
+    
+    // Check if SliderTB is in the message and update it
+    if (payload.SliderTB !== undefined) {
+      updateSliderPosition('SliderTB', payload.SliderTB);
+    }
+
   } catch (err) {
     console.error('Error parsing MQTT payload:', err);
   }
