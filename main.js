@@ -68,22 +68,22 @@ function createActuatorBase(modelBox) {
   modelBox.getSize(size);
   modelBox.getCenter(center);
 
-  // Base dimensions based on model bounds
-  const baseWidth = size.x * 1.2;
-  const baseDepth = size.z * 1.2;
-  const baseThickness = 0.03;
+  // Double size footprint (2.4x) and reduced thickness (0.01 units)
+  const baseWidth = size.x * 2.4;
+  const baseDepth = size.z * 2.4;
+  const baseThickness = 0.01;
 
-  // Dark metallic material for base plate
+  // Dark metallic material for thin plate
   const baseMaterial = new THREE.MeshStandardMaterial({
     color: 0x22252a,
-    metalness: 0.8,
-    roughness: 0.3
+    metalness: 0.85,
+    roughness: 0.25
   });
 
   const baseGeometry = new THREE.BoxGeometry(baseWidth, baseThickness, baseDepth);
   const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
 
-  // Position base directly underneath the bottom of the model
+  // Position plate flush underneath the bottom of the model
   baseMesh.position.set(
     center.x,
     modelBox.min.y - (baseThickness / 2),
