@@ -8,17 +8,14 @@ const HIVEMQ_PASSWORD = "FestoPLC1";
 const MQTT_TOPIC = "festo/actuators/positions";
 
 // ==========================================
-// 2. THREE.JS SCENE & LIGHTING SETUP
+// 2. THREE.JS SCENE SETUP
 // ==========================================
 const container = document.getElementById('canvas-container');
 
-// Scene, Camera, Renderer
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf4f6f9); // Clean industrial backdrop
+scene.background = new THREE.Color(0xf4f6f9);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-// Custom Saved Camera Position
 camera.position.set(-0.13, 0.88, 0.93);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -27,41 +24,72 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-// Tone Mapping & Saved Exposure
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.1; // Saved value
+renderer.toneMappingExposure = 1.1;
 
 container.appendChild(renderer.domElement);
 
-// Orbit Controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// --- CUSTOM LIGHTING SETUP ---
-
-// 1. Hemisphere Light (Soft ambient sky/ground fill)
+// --- LIGHTS ---
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
 hemiLight.position.set(0, 20, 0);
 scene.add(hemiLight);
 
-// 2. Key Light (Custom Position & Intensity)
-const keyLight = new THREE.DirectionalLight(0xffffff, 3.0); // Saved intensity
-keyLight.position.set(3, -5, -5);                           // Saved position
+const keyLight = new THREE.DirectionalLight(0xffffff, 3.0);
+keyLight.position.set(3, -5, -5);
 keyLight.castShadow = true;
 scene.add(keyLight);
 
-// 3. Fill Light (Backside fill)
 const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
 fillLight.position.set(-5, 5, -5);
 scene.add(fillLight);
 
-// 4. Ambient Baseline Light
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
 // ==========================================
-// 3. LOAD GLB MODEL & FIND NODES
+// 3. UI SLIDER CONTROLS (LIVE UPDATES)
+// ==========================================
+function setupLightingControls() {
+  const bindControl = (id, callback) => {
+    const slider = document.getElementById(id);
+    const display = document.getElementById(id + '-val') || document.getElementById(id.replace('key-', 'key-') + '-val');
+    if (!slider) return;
+    slider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      if (display) display.innerText = val;
+      callback(val);
+    });
+  };
+
+  bindControl('exposure', (val) => { renderer.toneMappingExposure = val; });
+  bindControl('key-intensity', (val) => { keyLight.intensity = val; });
+  bindControl('key-x', (val) => { keyLight.position.x = val; });
+  bindControl('key-y', (val) => { keyLight.position.y = val; });
+  bindControl('key-z', (val) => { keyLight.position.z = val; });
+  bindControl('fill-intensity', (val) => { fillLight.intensity = val; });
+  bindControl('hemi-intensity', (val) => { hemiLight.intensity = val; });
+}
+
+window.logCurrentSettings = function() {
+  console.log('=== CURRENT LIGHTING & CAMERA SETTINGS ===');
+  console.log(`camera.position.set(${camera.position.x.toFixed(2)}, ${camera.position.y.toFixed(2)}, ${camera.position.z.toFixed(2)});`);
+  console.log(`renderer.toneMappingExposure = ${renderer.toneMappingExposure};`);
+  console.log(`keyLight.intensity = ${keyLight.intensity};`);
+  console.log(`keyLight.position.set(${keyLight.position.x}, ${keyLight.position.y}, ${keyLight.position.z});`);
+  console.log(`fillLight.intensity = ${fillLight.intensity};`);
+  console.log(`hemiLight.intensity = ${hemiLight.intensity};`);
+  console.log('==========================================');
+  alert('Settings logged to browser console (F12)!');
+};
+
+setupLightingControls();
+
+// ==========================================
+// 4. LOAD GLB MODEL & FIND NODES
 // ==========================================
 let sliderBSNode = null;
 let sliderTBNode = null;
@@ -69,8 +97,7 @@ let sliderTBNode = null;
 let initialBS = { x: 0, y: 0, z: 0 };
 let initialTB = { x: 0, y: 0, z: 0 };
 
-// Scale factor applied to MQTT payloads
-const SCALE_FACTOR = 1; 
+const SCALE_FACTOR = 1;
 
 const loader = new THREE.GLTFLoader();
 loader.load(
@@ -97,9 +124,7 @@ loader.load(
     });
 
     scene.add(model);
-    console.log('Festo Nodes Loaded & Baselines Saved:', { sliderBSNode, sliderTBNode });
 
-    // Target the center of the model for OrbitControls focusing
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     controls.target.copy(center);
@@ -111,7 +136,6 @@ loader.load(
   }
 );
 
-// Animation / Render loop
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
@@ -126,7 +150,7 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 4. POSITION UPDATE LOGIC (Z-AXIS)
+// 5. POSITION UPDATE LOGIC (Z-AXIS)
 // ==========================================
 function updateSliderPosition(sliderName, positionVal) {
   const displacement = positionVal * SCALE_FACTOR;
@@ -143,7 +167,7 @@ function updateSliderPosition(sliderName, positionVal) {
 }
 
 // ==========================================
-// 5. HIVEMQ CLOUD CONNECTION (WSS)
+// 6. HIVEMQ CLOUD CONNECTION (WSS)
 // ==========================================
 const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
@@ -155,7 +179,6 @@ const client = mqtt.connect(brokerUrl, {
 });
 
 client.on('connect', () => {
-  console.log('Connected to private HiveMQ Cloud!');
   document.getElementById('status').innerText = 'Connected (Private)';
   document.getElementById('status').style.color = 'green';
   document.getElementById('dot').style.backgroundColor = '#00ff00';
@@ -183,7 +206,6 @@ client.on('message', (topic, message) => {
 });
 
 client.on('error', (err) => {
-  console.error('HiveMQ Connection Error:', err);
   document.getElementById('status').innerText = 'Connection Error';
   document.getElementById('status').style.color = 'red';
   document.getElementById('dot').style.backgroundColor = 'red';
