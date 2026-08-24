@@ -28,13 +28,15 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
-// Enable WebXR for AR Mode
+// Enable WebXR
 renderer.xr.enabled = true;
 
 container.appendChild(renderer.domElement);
 
-// Add AR Button to DOM
-document.body.appendChild(THREE.ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+// Append AR Button securely
+if (THREE.ARButton) {
+  document.body.appendChild(THREE.ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+}
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -56,11 +58,11 @@ scene.add(fillLight);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
-// Root container for positioning in AR
+// Group to hold model and base
 const arGroup = new THREE.Group();
 scene.add(arGroup);
 
-// Hide background when entering AR session
+// Handle WebXR Session Start/End
 renderer.xr.addEventListener('sessionstart', () => {
   scene.background = null;
 });
@@ -69,7 +71,7 @@ renderer.xr.addEventListener('sessionend', () => {
 });
 
 // ==========================================
-// 3. CREATE BASE PLATE FOR ACTUATORS
+// 3. BASE PLATE
 // ==========================================
 function createActuatorBase(modelBox) {
   const size = new THREE.Vector3();
@@ -102,7 +104,7 @@ function createActuatorBase(modelBox) {
 }
 
 // ==========================================
-// 4. LOAD GLB MODEL & INTERPOLATION SETUP
+// 4. LOAD GLB MODEL
 // ==========================================
 let sliderBSNode = null;
 let sliderTBNode = null;
@@ -120,15 +122,13 @@ const loader = new THREE.GLTFLoader();
 loader.load(
   './model/festo_actuators.glb',
   (gltf) => {
+    console.log('[MODEL] Model loaded successfully!');
     const model = gltf.scene;
 
     model.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
-        if (child.material) {
-          child.material.needsUpdate = true;
-        }
       }
       if (child.name === 'SliderBS') {
         sliderBSNode = child;
@@ -149,16 +149,18 @@ loader.load(
     controls.target.copy(center);
     controls.update();
   },
-  undefined,
+  (xhr) => {
+    console.log(`[MODEL] ${(xhr.loaded / xhr.total * 100).toFixed(0)}% loaded`);
+  },
   (error) => {
-    console.error('Error loading GLB model:', error);
+    console.error('[ERROR] Failed to load GLB model:', error);
   }
 );
 
 // ==========================================
-// 5. WEBXR RENDER LOOP
+// 5. ANIMATION & RENDER LOOP
 // ==========================================
-renderer.setAnimationLoop(() => {
+function animate() {
   if (sliderBSNode) {
     const targetZ = initialBS.z + (targetBS * SCALE_FACTOR);
     sliderBSNode.position.z += (targetZ - sliderBSNode.position.z) * LERP_FACTOR;
@@ -171,7 +173,10 @@ renderer.setAnimationLoop(() => {
 
   controls.update();
   renderer.render(scene, camera);
-});
+}
+
+// Dual loop support: WebXR + Standard Browser
+renderer.setAnimationLoop(animate);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -197,7 +202,7 @@ function updateSliderPosition(sliderName, positionVal) {
 }
 
 // ==========================================
-// 7. HIVEMQ CLOUD CONNECTION (WSS)
+// 7. HIVEMQ CLOUD CONNECTION
 // ==========================================
 const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
@@ -209,7 +214,7 @@ const client = mqtt.connect(brokerUrl, {
 });
 
 client.on('connect', () => {
-  console.log('Connected to private HiveMQ Cloud!');
+  console.log('[MQTT] Connected to HiveMQ Cloud');
   const statusElem = document.getElementById('status');
   const dotElem = document.getElementById('dot');
 
@@ -222,53 +227,15 @@ client.on('connect', () => {
     dotElem.style.boxShadow = '0 0 10px #4caf50';
   }
 
-  client.subscribe(MQTT_TOPIC, (err) => {
-    if (!err) console.log(`Subscribed to topic: ${MQTT_TOPIC}`);
-  });
+  client.subscribe(MQTT_TOPIC);
 });
 
 client.on('message', (topic, message) => {
   try {
     const payload = JSON.parse(message.toString());
-
-    if (payload.SliderBS !== undefined) {
-      updateSliderPosition('SliderBS', payload.SliderBS);
-    }
-
-    if (payload.SliderTB !== undefined) {
-      updateSliderPosition('SliderTB', payload.SliderTB);
-    }
-
+    if (payload.SliderBS !== undefined) updateSliderPosition('SliderBS', payload.SliderBS);
+    if (payload.SliderTB !== undefined) updateSliderPosition('SliderTB', payload.SliderTB);
   } catch (err) {
-    console.error('Error parsing MQTT payload:', err);
-  }
-});
-
-client.on('error', (err) => {
-  console.error('HiveMQ Connection Error:', err);
-  const statusElem = document.getElementById('status');
-  const dotElem = document.getElementById('dot');
-
-  if (statusElem) {
-    statusElem.innerText = 'Connection Error';
-    statusElem.style.color = '#c62828';
-  }
-  if (dotElem) {
-    dotElem.style.backgroundColor = '#f44336';
-    dotElem.style.boxShadow = '0 0 10px #f44336';
-  }
-});
-
-client.on('offline', () => {
-  const statusElem = document.getElementById('status');
-  const dotElem = document.getElementById('dot');
-
-  if (statusElem) {
-    statusElem.innerText = 'Offline';
-    statusElem.style.color = '#ff9800';
-  }
-  if (dotElem) {
-    dotElem.style.backgroundColor = '#ff9800';
-    dotElem.style.boxShadow = '0 0 10px #ff9800';
+    console.error('MQTT Parse Error:', err);
   }
 });
