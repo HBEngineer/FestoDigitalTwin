@@ -1,63 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Festo Digital Twin</title>
 
-  <!-- External Stylesheet -->
-  <link rel="stylesheet" href="./styles.css">
+  <!-- Relative CSS link -->
+  <link rel="stylesheet" href="./styles.css" />
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/x-icon" href="./favicon.ico">
-
-  <!-- Three.js Libraries -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Three.js Core & Addons -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-
-  <!-- Three.js ARButton import -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/webxr/ARButton.js"></script>
 
-  <!-- MQTT.js Library -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
+  <!-- MQTT Client -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
-
-  <!-- WebGL Canvas Container -->
-  <div id="canvas-container"></div>
-
-  <!-- Detailed MQTT & Actuator Status Card -->
-  <div id="status-card">
-    <div class="card-title">Festo Digital Twin</div>
-    
-    <!-- MQTT Connection Section -->
-    <div class="status-header">
-      <span id="dot" class="status-dot"></span>
-      <span id="status" class="status-text">Connecting...</span>
+  <!-- Status Overlay -->
+  <div id="status-card" style="position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(255, 255, 255, 0.9); padding: 15px 20px; border-radius: 8px; font-family: sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+      <span id="dot" style="width: 10px; height: 10px; border-radius: 50%; background-color: #ff9800; display: inline-block;"></span>
+      <strong id="status" style="color: #e65100;">Connecting...</strong>
     </div>
-    
-    <div class="info-row">
-      <span>Broker:</span>
-      <span id="broker-host" class="info-value">HiveMQ Cloud</span>
-    </div>
-
-    <hr class="divider">
-
-    <!-- Actuator Telemetry Section -->
-    <div class="readout-group">
-      <div class="readout-row">
-        <span>Slider BS Target:</span>
-        <span id="val-bs" class="readout-value">0 mm</span>
-      </div>
-      <div class="readout-row">
-        <span>Slider TB Target:</span>
-        <span id="val-tb" class="readout-value">0 mm</span>
-      </div>
-    </div>
+    <div><strong>SliderBS:</strong> <span id="val-bs">0 mm</span></div>
+    <div><strong>SliderTB:</strong> <span id="val-tb">0 mm</span></div>
   </div>
 
-  <!-- Main Three.js & MQTT Logic -->
+  <div id="canvas-container" style="width: 100vw; height: 100vh; overflow: hidden;"></div>
+
   <script src="./main.js"></script>
 </body>
 </html>

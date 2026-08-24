@@ -33,9 +33,12 @@ renderer.xr.enabled = true;
 
 container.appendChild(renderer.domElement);
 
-// Append AR Button securely
-if (THREE.ARButton) {
-  document.body.appendChild(THREE.ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+// Append AR Button safely (supports window.ARButton and THREE.ARButton)
+const arBtn = window.ARButton || (typeof THREE !== 'undefined' && THREE.ARButton);
+if (arBtn) {
+  document.body.appendChild(arBtn.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+} else {
+  console.warn('[AR] ARButton not found on window or THREE context.');
 }
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -62,7 +65,7 @@ scene.add(ambientLight);
 const arGroup = new THREE.Group();
 scene.add(arGroup);
 
-// Handle WebXR Session Start/End
+// WebXR Session handlers
 renderer.xr.addEventListener('sessionstart', () => {
   scene.background = null;
 });
@@ -122,7 +125,7 @@ const loader = new THREE.GLTFLoader();
 loader.load(
   './model/festo_actuators.glb',
   (gltf) => {
-    console.log('[MODEL] Model loaded successfully!');
+    console.log('[MODEL] Loaded successfully!');
     const model = gltf.scene;
 
     model.traverse((child) => {
@@ -150,7 +153,9 @@ loader.load(
     controls.update();
   },
   (xhr) => {
-    console.log(`[MODEL] ${(xhr.loaded / xhr.total * 100).toFixed(0)}% loaded`);
+    if (xhr.total > 0) {
+      console.log(`[MODEL] ${(xhr.loaded / xhr.total * 100).toFixed(0)}% loaded`);
+    }
   },
   (error) => {
     console.error('[ERROR] Failed to load GLB model:', error);
@@ -175,7 +180,7 @@ function animate() {
   renderer.render(scene, camera);
 }
 
-// Dual loop support: WebXR + Standard Browser
+// Handles both desktop and WebXR loops
 renderer.setAnimationLoop(animate);
 
 window.addEventListener('resize', () => {
@@ -236,6 +241,6 @@ client.on('message', (topic, message) => {
     if (payload.SliderBS !== undefined) updateSliderPosition('SliderBS', payload.SliderBS);
     if (payload.SliderTB !== undefined) updateSliderPosition('SliderTB', payload.SliderTB);
   } catch (err) {
-    console.error('MQTT Parse Error:', err);
+    console.error('[MQTT] Parse error:', err);
   }
 });
