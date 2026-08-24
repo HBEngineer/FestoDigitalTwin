@@ -5,59 +5,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Festo Digital Twin</title>
 
-  <!-- Load Three.js & Controls/Loaders -->
+  <!-- External Stylesheet -->
+  <link rel="stylesheet" href="./styles.css">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="./favicon.ico">
+
+  <!-- Three.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <!-- Three.js OrbitControls -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Three.js GLTFLoader -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
-  <!-- Load MQTT Client Library -->
+  <!-- MQTT.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
-
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: Arial, sans-serif;
-      background-color: #1a1a1a;
-    }
-    #canvas-container {
-      width: 100vw;
-      height: 100vh;
-    }
-    #dashboard {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: rgba(255, 255, 255, 0.95);
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-      z-index: 10;
-    }
-    .status-dot {
-      display: inline-block;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: red;
-      margin-right: 5px;
-    }
-  </style>
 </head>
 <body>
 
-  <!-- Overlay Dashboard -->
-  <div id="dashboard">
-    <h3 style="margin-top:0;">Festo Actuators</h3>
-    <p><span id="dot" class="status-dot"></span> <b>HiveMQ Status:</b> <span id="status">Disconnected</span></p>
-    <p><b>SliderBS Target:</b> <span id="val-bs">0</span> mm</p>
-    <p><b>SliderTB Target:</b> <span id="val-tb">0</span> mm</p>
-  </div>
-
-  <!-- 3D Canvas Container -->
+  <!-- WebGL Render Container -->
   <div id="canvas-container"></div>
 
-  <!-- Load Main Logic -->
+  <!-- MQTT Status & Telemetry Overlay Panel -->
+  <div id="status-card">
+    <div class="status-header">
+      <span id="dot" class="status-dot"></span>
+      <span id="status">Connecting...</span>
+    </div>
+    <div class="readout-group">
+      <div class="readout-row">
+        <span>Slider BS:</span>
+        <span id="val-bs" class="readout-value">0</span>
+      </div>
+      <div class="readout-row">
+        <span>Slider TB:</span>
+        <span id="val-tb" class="readout-value">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Three.js & MQTT Logic -->
   <script src="./main.js"></script>
 </body>
 </html>
