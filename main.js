@@ -8,13 +8,13 @@ const HIVEMQ_PASSWORD = "FestoPLC1";
 const MQTT_TOPIC = "festo/actuators/positions";
 
 // ==========================================
-// 2. THREE.JS SCENE SETUP
+// 2. THREE.JS SCENE & LIGHTING SETUP
 // ==========================================
 const container = document.getElementById('canvas-container');
 
 // Scene, Camera, Renderer
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf0f2f5);
+scene.background = new THREE.Color(0xf4f6f9); // Clean industrial light backdrop
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(2, 2, 2);
@@ -23,19 +23,40 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// Tone Mapping for realistic material exposure
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.25;
+
 container.appendChild(renderer.domElement);
 
 // Orbit Controls
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
-// Lighting
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
-scene.add(ambientLight);
+// --- BRIGHTER LIGHTING SETUP ---
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-dirLight.position.set(5, 10, 7);
-scene.add(dirLight);
+// 1. Hemisphere Light (Soft Sky Light + Ground Reflection to eliminate dark shadows under parts)
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
+hemiLight.position.set(0, 20, 0);
+scene.add(hemiLight);
+
+// 2. Key Directional Light (Front / Top / Right)
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.0);
+keyLight.position.set(5, 10, 7);
+keyLight.castShadow = true;
+scene.add(keyLight);
+
+// 3. Fill Light (Back / Left to brighten shadowed back faces)
+const fillLight = new THREE.DirectionalLight(0xffffff, 1.2);
+fillLight.position.set(-5, 5, -5);
+scene.add(fillLight);
+
+// 4. Ambient Light (Baseline brightness layer)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+scene.add(ambientLight);
 
 // ==========================================
 // 3. LOAD GLB MODEL & FIND NODES
@@ -46,8 +67,7 @@ let sliderTBNode = null;
 let initialBS = { x: 0, y: 0, z: 0 };
 let initialTB = { x: 0, y: 0, z: 0 };
 
-// Multiplier applied to MQTT payload values.
-// Set to 1 if model units are in mm, or 0.001 if model units are in meters.
+// Multiplier applied to MQTT payload values
 const SCALE_FACTOR = 1; 
 
 const loader = new THREE.GLTFLoader();
@@ -55,9 +75,16 @@ loader.load(
   './model/festo_actuators.glb',
   (gltf) => {
     const model = gltf.scene;
-    scene.add(model);
 
+    // Traverse materials to ensure lighting reflects properly on all surfaces
     model.traverse((child) => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (child.material) {
+          child.material.needsUpdate = true;
+        }
+      }
       if (child.name === 'SliderBS') {
         sliderBSNode = child;
         initialBS = { x: child.position.x, y: child.position.y, z: child.position.z };
@@ -68,6 +95,7 @@ loader.load(
       }
     });
 
+    scene.add(model);
     console.log('Festo Nodes Loaded & Baselines Saved:', { sliderBSNode, sliderTBNode });
 
     // Center camera on loaded model
