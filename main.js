@@ -60,7 +60,43 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
 // ==========================================
-// 3. LOAD GLB MODEL & INTERPOLATION SETUP
+// 3. CREATE BASE PLATE FOR ACTUATORS
+// ==========================================
+function createActuatorBase(modelBox) {
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  modelBox.getSize(size);
+  modelBox.getCenter(center);
+
+  // Base dimensions based on model bounds
+  const baseWidth = size.x * 1.2;
+  const baseDepth = size.z * 1.2;
+  const baseThickness = 0.03;
+
+  // Dark metallic material for base plate
+  const baseMaterial = new THREE.MeshStandardMaterial({
+    color: 0x22252a,
+    metalness: 0.8,
+    roughness: 0.3
+  });
+
+  const baseGeometry = new THREE.BoxGeometry(baseWidth, baseThickness, baseDepth);
+  const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+
+  // Position base directly underneath the bottom of the model
+  baseMesh.position.set(
+    center.x,
+    modelBox.min.y - (baseThickness / 2),
+    center.z
+  );
+  baseMesh.receiveShadow = true;
+  baseMesh.castShadow = true;
+
+  scene.add(baseMesh);
+}
+
+// ==========================================
+// 4. LOAD GLB MODEL & INTERPOLATION SETUP
 // ==========================================
 let sliderBSNode = null;
 let sliderTBNode = null;
@@ -73,7 +109,7 @@ let targetBS = 0;
 let targetTB = 0;
 
 const SCALE_FACTOR = 1;
-const LERP_FACTOR = 0.08; // Adjust between 0.01 (smoother/slower) and 0.2 (faster response)
+const LERP_FACTOR = 0.08;
 
 const loader = new THREE.GLTFLoader();
 loader.load(
@@ -101,7 +137,10 @@ loader.load(
 
     scene.add(model);
 
+    // Compute bounding box and create base automatically
     const box = new THREE.Box3().setFromObject(model);
+    createActuatorBase(box);
+
     const center = box.getCenter(new THREE.Vector3());
     controls.target.copy(center);
     controls.update();
@@ -113,7 +152,7 @@ loader.load(
 );
 
 // ==========================================
-// 4. ANIMATION LOOP WITH INTERPOLATION
+// 5. ANIMATION LOOP WITH INTERPOLATION
 // ==========================================
 function animate() {
   requestAnimationFrame(animate);
@@ -142,7 +181,7 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 5. UPDATE TARGET VALUES FROM MQTT
+// 6. UPDATE TARGET VALUES FROM MQTT
 // ==========================================
 function updateSliderPosition(sliderName, positionVal) {
   if (sliderName === 'SliderBS') {
@@ -157,7 +196,7 @@ function updateSliderPosition(sliderName, positionVal) {
 }
 
 // ==========================================
-// 6. HIVEMQ CLOUD CONNECTION (WSS)
+// 7. HIVEMQ CLOUD CONNECTION (WSS)
 // ==========================================
 const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
