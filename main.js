@@ -46,8 +46,9 @@ let sliderTBNode = null;
 let initialBS = { x: 0, y: 0, z: 0 };
 let initialTB = { x: 0, y: 0, z: 0 };
 
-// Scale factor: millimeters to meters in 3D coordinate space
-const MM_TO_METERS = 0.001;
+// Multiplier applied to MQTT payload values.
+// Set to 1 if model units are in mm, or 0.001 if model units are in meters.
+const SCALE_FACTOR = 1; 
 
 const loader = new THREE.GLTFLoader();
 loader.load(
@@ -99,19 +100,17 @@ window.addEventListener('resize', () => {
 // ==========================================
 // 4. POSITION UPDATE LOGIC (Z-AXIS)
 // ==========================================
-function updateSliderPosition(sliderName, positionInMM) {
-  const positionInMeters = positionInMM * MM_TO_METERS;
+function updateSliderPosition(sliderName, positionVal) {
+  const displacement = positionVal * SCALE_FACTOR;
 
   if (sliderName === 'SliderBS' && sliderBSNode) {
-    // Moved along Z axis relative to initial baseline
-    sliderBSNode.position.z = initialBS.z + positionInMeters;
-    document.getElementById('val-bs').innerText = positionInMM;
+    sliderBSNode.position.z = initialBS.z + displacement;
+    document.getElementById('val-bs').innerText = positionVal;
   }
 
   if (sliderName === 'SliderTB' && sliderTBNode) {
-    // Moved along Z axis relative to initial baseline
-    sliderTBNode.position.z = initialTB.z + positionInMeters;
-    document.getElementById('val-tb').innerText = positionInMM;
+    sliderTBNode.position.z = initialTB.z + displacement;
+    document.getElementById('val-tb').innerText = positionVal;
   }
 }
 
