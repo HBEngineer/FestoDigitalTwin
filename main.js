@@ -4,11 +4,11 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import mqtt from 'mqtt';
 
 // ==========================================
-// 1. SCENE SETUP
+// 1. SCENE & CAMERA SETUP
 // ==========================================
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x1a1a1a);
+scene.background = new THREE.Color(0x222222);
 
 const camera = new THREE.PerspectiveCamera(
   45,
@@ -16,7 +16,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000
 );
-camera.position.set(10, 8, 15);
+camera.position.set(2, 2, 4);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -29,22 +29,28 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
+// Visual reference grid so you can verify rendering even if the model fails
+const gridHelper = new THREE.GridHelper(10, 10, 0x0091ff, 0x444444);
+scene.add(gridHelper);
+
 // ==========================================
 // 2. LIGHTING SETUP
 // ==========================================
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
 scene.add(ambientLight);
 
 const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
-keyLight.position.set(5, -3.5, 5);
+keyLight.position.set(5, 5, 5);
 keyLight.castShadow = true;
-keyLight.shadow.mapSize.width = 2048;
-keyLight.shadow.mapSize.height = 2048;
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 1.0);
+const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
 fillLight.position.set(-5, 5, -5);
 scene.add(fillLight);
+
+// Hemisphere light guarantees no dark undersides
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+scene.add(hemiLight);
 
 // ==========================================
 // 3. UI LIGHT CONTROL LISTENERS
@@ -76,42 +82,72 @@ sliderPos.addEventListener('input', (e) => {
 });
 
 // ==========================================
-// 4. MODEL LOADING & ACTUATORS
+// 4. MODEL LOADING & AUTO-CENTERING
 // ==========================================
 let sliderBSMesh = null;
 let sliderTBMesh = null;
 
-// Telemetry DOM elements
 const elBS = document.getElementById('pos-bs');
 const elTB = document.getElementById('pos-tb');
 
+// TRY LOADING MODEL - Check console if path fails
 const loader = new GLTFLoader();
+
+// Updated relative path: check your exact folder name ('model' vs 'models')
+const MODEL_PATH = './model/festo_actuators.glb'; 
+
 loader.load(
-  './models/festo_assembly.gltf', // Path to your 3D CAD model
+  MODEL_PATH,
   (gltf) => {
     const model = gltf.scene;
     scene.add(model);
 
-    // Locate moveable slider objects within the hierarchy
+    console.log('[3D] Model loaded successfully! Inspecting nodes...');
+
     model.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
+        
+        // Prevent pure black mesh rendering if environment map is missing
+        if (child.material) {
+          child.material.roughness = 0.5;
+          child.material.metalness = 0.2;
+        }
+
+        // Print node names in developer console to confirm exact target mesh names
+        console.log('Found Mesh Node:', child.name);
+
+        if (child.name.includes('BS') || child.name === 'SliderBS') sliderBSMesh = child;
+        if (child.name.includes('TB') || child.name === 'SliderTB') sliderTBMesh = child;
       }
-      if (child.name === 'ELGD_BS_Slider') sliderBSMesh = child;
-      if (child.name === 'ELGD_TB_Slider') sliderTBMesh = child;
     });
 
-    console.log('3D Model loaded successfully');
+    // Automatically focus camera on the loaded model
+    const box = new THREE.Box3().setFromObject(model);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+
+    controls.target.copy(center);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    camera.position.set(center.x + maxDim * 1.5, center.y + maxDim * 1.5, center.z + maxDim * 1.5);
+    camera.lookAt(center);
+    controls.update();
+
+    console.log(`[3D] Camera auto-centered to bbox size: ${maxDim.toFixed(2)}`);
   },
-  undefined,
+  (xhr) => {
+    if (xhr.lengthComputable) {
+      console.log(`[3D] Loading progress: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
+    }
+  },
   (error) => {
-    console.error('An error occurred loading the 3D model:', error);
+    console.error(`[3D Error] Failed to load model at path "${MODEL_PATH}". Check file path/case sensitivity!`, error);
   }
 );
 
 // ==========================================
-// 5. HIVEMQ CLOUD MQTT WEBSOCKET CONNECTION
+// 5. MQTT WEBSOCKET CONNECTION
 // ==========================================
 const MQTT_BROKER = 'wss://0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud:8843/mqtt';
 const MQTT_TOPIC = 'festo/actuators/positions';
@@ -135,15 +171,14 @@ client.on('message', (topic, message) => {
     if (data.SliderBS !== undefined) {
       elBS.textContent = `${data.SliderBS.toFixed(2)} mm`;
       if (sliderBSMesh) {
-        // Map millimeter positions to 3D world space (adjust axis & scale as needed)
-        sliderBSMesh.position.x = data.SliderBS / 1000.0;
+        sliderBSMesh.position.z = data.SliderBS / 1000.0;
       }
     }
 
     if (data.SliderTB !== undefined) {
       elTB.textContent = `${data.SliderTB.toFixed(2)} mm`;
       if (sliderTBMesh) {
-        sliderTBMesh.position.y = data.SliderTB / 1000.0;
+        sliderTBMesh.position.z = data.SliderTB / 1000.0;
       }
     }
   } catch (err) {
@@ -152,7 +187,7 @@ client.on('message', (topic, message) => {
 });
 
 // ==========================================
-// 6. RENDER LOOP & RESIZE HANDLING
+// 6. RENDER LOOP
 // ==========================================
 function animate() {
   requestAnimationFrame(animate);
