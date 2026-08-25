@@ -89,7 +89,6 @@ const toggleIcon = document.getElementById('toggle-icon');
 
 panelHeader.addEventListener('click', () => {
   lightPanel.classList.toggle('collapsed');
-  toggleIcon.innerText = lightPanel.classList.contains('collapsed') ? '?' : '?';
 });
 
 document.getElementById('ctrl-hemi').addEventListener('input', (e) => {
