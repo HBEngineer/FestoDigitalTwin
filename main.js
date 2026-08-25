@@ -50,19 +50,18 @@ panelToggle.addEventListener('click', () => {
 });
 
 // ==========================================
-// 3. LIGHTING SETUP
+// 3. DEFAULT LIGHTING SETUP (NEW DEFAULT VALUES)
 // ==========================================
-const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
 scene.add(ambientLight);
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
-keyLight.position.set(5, 5, 5);
+const keyLight = new THREE.DirectionalLight(0xffffff, 2.1);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.width = 2048;
 keyLight.shadow.mapSize.height = 2048;
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
+const fillLight = new THREE.DirectionalLight(0xffffff, 2.1);
 fillLight.position.set(-5, 5, -5);
 scene.add(fillLight);
 
@@ -76,6 +75,9 @@ function updateKeyLightPosition(angleDeg, heightY) {
   keyLight.position.z = currentLightDistance * Math.sin(rad);
   keyLight.position.y = heightY;
 }
+
+// Initialize key light position based on defaults (165°, Height 0.0)
+updateKeyLightPosition(165, 0.0);
 
 // ==========================================
 // 4. UI LISTENERS & CONTROL BINDINGS
@@ -198,7 +200,7 @@ loader.load(
 );
 
 // ==========================================
-// 6. MQTT WEBSOCKET CONNECTION (HIVEMQ SECURE FIX)
+// 6. BASIC MQTT WEBSOCKET CONNECTION (EXACT YESTERDAY VERSION)
 // ==========================================
 const mqttDot = document.getElementById('mqtt-dot');
 const mqttStatusText = document.getElementById('mqtt-status-text');
@@ -206,45 +208,38 @@ const mqttStatusText = document.getElementById('mqtt-status-text');
 const MQTT_BROKER = 'wss://0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud:8843/mqtt';
 const MQTT_TOPIC = 'festo/actuators/positions';
 
-// Robust WebSocket options for HiveMQ Cloud TLS
 const client = mqtt.connect(MQTT_BROKER, {
   username: 'FestoPLC1',
   password: 'FestoPLC1',
-  clientId: 'web_twin_' + Math.random().toString(16).substring(2, 8),
-  keepalive: 30,
   clean: true,
-  reconnectPeriod: 2000,
-  connectTimeout: 10000,
-  rejectUnauthorized: true
+  connectTimeout: 4000
 });
 
 client.on('connect', () => {
   console.log('[MQTT] Connected to HiveMQ Cloud via WebSocket!');
-  mqttDot.classList.add('connected');
-  mqttStatusText.textContent = 'MQTT Connected';
-  mqttStatusText.style.color = '#00ff88';
-  client.subscribe(MQTT_TOPIC, (err) => {
-    if (err) console.error('[MQTT Subscribe Error]', err);
-  });
+  if (mqttDot) mqttDot.classList.add('connected');
+  if (mqttStatusText) {
+    mqttStatusText.textContent = 'MQTT Connected';
+    mqttStatusText.style.color = '#00ff88';
+  }
+  client.subscribe(MQTT_TOPIC);
 });
 
 client.on('offline', () => {
-  mqttDot.classList.remove('connected');
-  mqttStatusText.textContent = 'MQTT Offline';
-  mqttStatusText.style.color = '#ff4444';
-});
-
-client.on('reconnect', () => {
-  mqttDot.classList.remove('connected');
-  mqttStatusText.textContent = 'Reconnecting...';
-  mqttStatusText.style.color = '#ffbb00';
+  if (mqttDot) mqttDot.classList.remove('connected');
+  if (mqttStatusText) {
+    mqttStatusText.textContent = 'MQTT Offline';
+    mqttStatusText.style.color = '#ff4444';
+  }
 });
 
 client.on('error', (err) => {
   console.error('[MQTT Error]', err);
-  mqttDot.classList.remove('connected');
-  mqttStatusText.textContent = 'MQTT Connection Error';
-  mqttStatusText.style.color = '#ff4444';
+  if (mqttDot) mqttDot.classList.remove('connected');
+  if (mqttStatusText) {
+    mqttStatusText.textContent = 'MQTT Error';
+    mqttStatusText.style.color = '#ff4444';
+  }
 });
 
 client.on('message', (topic, message) => {
