@@ -1,246 +1,168 @@
-// ==========================================
-// 1. HIVEMQ CLOUD CREDENTIALS
-// ==========================================
-const HIVEMQ_HOST = "0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud";
-const HIVEMQ_PORT = 8884;
-const HIVEMQ_USERNAME = "FestoPLC1";
-const HIVEMQ_PASSWORD = "FestoPLC1";
-const MQTT_TOPIC = "festo/actuators/positions";
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import mqtt from 'mqtt';
 
 // ==========================================
-// 2. THREE.JS SCENE & WEBXR SETUP
+// 1. SCENE SETUP
 // ==========================================
 const container = document.getElementById('canvas-container');
-
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf4f6f9);
+scene.background = new THREE.Color(0x1a1a1a);
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(-0.32, 0.83, 0.97);
+const camera = new THREE.PerspectiveCamera(
+  45,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
+camera.position.set(10, 8, 15);
 
-const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-renderer.outputEncoding = THREE.sRGBEncoding;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
-
-// Enable WebXR
-renderer.xr.enabled = true;
-
 container.appendChild(renderer.domElement);
 
-// Append AR Button safely (supports window.ARButton and THREE.ARButton)
-const arBtn = window.ARButton || (typeof THREE !== 'undefined' && THREE.ARButton);
-if (arBtn) {
-  document.body.appendChild(arBtn.createButton(renderer, { requiredFeatures: ['hit-test'] }));
-} else {
-  console.warn('[AR] ARButton not found on window or THREE context.');
-}
-
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.dampingFactor = 0.05;
 
-// --- LIGHTING SETUP ---
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.8);
-hemiLight.position.set(0, 20, 0);
-scene.add(hemiLight);
-
-const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
-keyLight.position.set(-3, -3.5, -0.5);
-keyLight.castShadow = true;
-scene.add(keyLight);
-
-const fillLight = new THREE.DirectionalLight(0xffffff, 4.0);
-fillLight.position.set(-5, 5, -5);
-scene.add(fillLight);
-
+// ==========================================
+// 2. LIGHTING SETUP
+// ==========================================
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
-// Group to hold model and base
-const arGroup = new THREE.Group();
-scene.add(arGroup);
+const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
+keyLight.position.set(5, -3.5, 5);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.width = 2048;
+keyLight.shadow.mapSize.height = 2048;
+scene.add(keyLight);
 
-// WebXR Session handlers
-renderer.xr.addEventListener('sessionstart', () => {
-  scene.background = null;
+const fillLight = new THREE.DirectionalLight(0xffffff, 1.0);
+fillLight.position.set(-5, 5, -5);
+scene.add(fillLight);
+
+// ==========================================
+// 3. UI LIGHT CONTROL LISTENERS
+// ==========================================
+const sliderKey = document.getElementById('light-key-slider');
+const sliderAmb = document.getElementById('light-amb-slider');
+const sliderPos = document.getElementById('light-pos-slider');
+
+const valKey = document.getElementById('val-key');
+const valAmb = document.getElementById('val-amb');
+const valPos = document.getElementById('val-pos');
+
+sliderKey.addEventListener('input', (e) => {
+  const val = parseFloat(e.target.value);
+  keyLight.intensity = val;
+  valKey.textContent = val.toFixed(1);
 });
-renderer.xr.addEventListener('sessionend', () => {
-  scene.background = new THREE.Color(0xf4f6f9);
+
+sliderAmb.addEventListener('input', (e) => {
+  const val = parseFloat(e.target.value);
+  ambientLight.intensity = val;
+  valAmb.textContent = val.toFixed(1);
+});
+
+sliderPos.addEventListener('input', (e) => {
+  const val = parseFloat(e.target.value);
+  keyLight.position.y = val;
+  valPos.textContent = val.toFixed(1);
 });
 
 // ==========================================
-// 3. BASE PLATE
+// 4. MODEL LOADING & ACTUATORS
 // ==========================================
-function createActuatorBase(modelBox) {
-  const size = new THREE.Vector3();
-  const center = new THREE.Vector3();
-  modelBox.getSize(size);
-  modelBox.getCenter(center);
+let sliderBSMesh = null;
+let sliderTBMesh = null;
 
-  const baseWidth = size.x * 2.4;
-  const baseDepth = size.z * 2.4;
-  const baseThickness = 0.01;
+// Telemetry DOM elements
+const elBS = document.getElementById('pos-bs');
+const elTB = document.getElementById('pos-tb');
 
-  const baseMaterial = new THREE.MeshStandardMaterial({
-    color: 0x22252a,
-    metalness: 0.85,
-    roughness: 0.25
-  });
-
-  const baseGeometry = new THREE.BoxGeometry(baseWidth, baseThickness, baseDepth);
-  const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
-
-  baseMesh.position.set(
-    center.x,
-    modelBox.min.y - (baseThickness / 2),
-    center.z
-  );
-  baseMesh.receiveShadow = true;
-  baseMesh.castShadow = true;
-
-  arGroup.add(baseMesh);
-}
-
-// ==========================================
-// 4. LOAD GLB MODEL
-// ==========================================
-let sliderBSNode = null;
-let sliderTBNode = null;
-
-let initialBS = { x: 0, y: 0, z: 0 };
-let initialTB = { x: 0, y: 0, z: 0 };
-
-let targetBS = 0;
-let targetTB = 0;
-
-const SCALE_FACTOR = 1;
-const LERP_FACTOR = 0.08;
-
-const loader = new THREE.GLTFLoader();
+const loader = new GLTFLoader();
 loader.load(
-  './model/festo_actuators.glb',
+  './models/festo_assembly.gltf', // Path to your 3D CAD model
   (gltf) => {
-    console.log('[MODEL] Loaded successfully!');
     const model = gltf.scene;
+    scene.add(model);
 
+    // Locate moveable slider objects within the hierarchy
     model.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
       }
-      if (child.name === 'SliderBS') {
-        sliderBSNode = child;
-        initialBS = { x: child.position.x, y: child.position.y, z: child.position.z };
-      }
-      if (child.name === 'SliderTB') {
-        sliderTBNode = child;
-        initialTB = { x: child.position.x, y: child.position.y, z: child.position.z };
-      }
+      if (child.name === 'ELGD_BS_Slider') sliderBSMesh = child;
+      if (child.name === 'ELGD_TB_Slider') sliderTBMesh = child;
     });
 
-    arGroup.add(model);
-
-    const box = new THREE.Box3().setFromObject(model);
-    createActuatorBase(box);
-
-    const center = box.getCenter(new THREE.Vector3());
-    controls.target.copy(center);
-    controls.update();
+    console.log('3D Model loaded successfully');
   },
-  (xhr) => {
-    if (xhr.total > 0) {
-      console.log(`[MODEL] ${(xhr.loaded / xhr.total * 100).toFixed(0)}% loaded`);
-    }
-  },
+  undefined,
   (error) => {
-    console.error('[ERROR] Failed to load GLB model:', error);
+    console.error('An error occurred loading the 3D model:', error);
   }
 );
 
 // ==========================================
-// 5. ANIMATION & RENDER LOOP
+// 5. HIVEMQ CLOUD MQTT WEBSOCKET CONNECTION
 // ==========================================
-function animate() {
-  if (sliderBSNode) {
-    const targetZ = initialBS.z + (targetBS * SCALE_FACTOR);
-    sliderBSNode.position.z += (targetZ - sliderBSNode.position.z) * LERP_FACTOR;
-  }
+const MQTT_BROKER = 'wss://0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud:8843/mqtt';
+const MQTT_TOPIC = 'festo/actuators/positions';
 
-  if (sliderTBNode) {
-    const targetZ = initialTB.z + (targetTB * SCALE_FACTOR);
-    sliderTBNode.position.z += (targetZ - sliderTBNode.position.z) * LERP_FACTOR;
-  }
-
-  controls.update();
-  renderer.render(scene, camera);
-}
-
-// Handles both desktop and WebXR loops
-renderer.setAnimationLoop(animate);
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-// ==========================================
-// 6. UPDATE TARGET VALUES FROM MQTT
-// ==========================================
-function updateSliderPosition(sliderName, positionVal) {
-  if (sliderName === 'SliderBS') {
-    targetBS = positionVal;
-    const valBsElem = document.getElementById('val-bs');
-    if (valBsElem) valBsElem.innerText = `${positionVal} mm`;
-  }
-
-  if (sliderName === 'SliderTB') {
-    targetTB = positionVal;
-    const valTbElem = document.getElementById('val-tb');
-    if (valTbElem) valTbElem.innerText = `${positionVal} mm`;
-  }
-}
-
-// ==========================================
-// 7. HIVEMQ CLOUD CONNECTION
-// ==========================================
-const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
-
-const client = mqtt.connect(brokerUrl, {
-  clientId: 'festo_web_twin_' + Math.random().toString(16).substring(2, 10),
-  username: HIVEMQ_USERNAME,
-  password: HIVEMQ_PASSWORD,
-  clean: true
+const client = mqtt.connect(MQTT_BROKER, {
+  username: 'FestoPLC1',
+  password: 'FestoPLC1',
+  clean: true,
+  connectTimeout: 4000
 });
 
 client.on('connect', () => {
-  console.log('[MQTT] Connected to HiveMQ Cloud');
-  const statusElem = document.getElementById('status');
-  const dotElem = document.getElementById('dot');
-
-  if (statusElem) {
-    statusElem.innerText = 'Connected';
-    statusElem.style.color = '#2e7d32';
-  }
-  if (dotElem) {
-    dotElem.style.backgroundColor = '#4caf50';
-    dotElem.style.boxShadow = '0 0 10px #4caf50';
-  }
-
+  console.log('[MQTT] Connected to HiveMQ Cloud via WebSocket!');
   client.subscribe(MQTT_TOPIC);
 });
 
 client.on('message', (topic, message) => {
   try {
-    const payload = JSON.parse(message.toString());
-    if (payload.SliderBS !== undefined) updateSliderPosition('SliderBS', payload.SliderBS);
-    if (payload.SliderTB !== undefined) updateSliderPosition('SliderTB', payload.SliderTB);
+    const data = JSON.parse(message.toString());
+
+    if (data.SliderBS !== undefined) {
+      elBS.textContent = `${data.SliderBS.toFixed(2)} mm`;
+      if (sliderBSMesh) {
+        // Map millimeter positions to 3D world space (adjust axis & scale as needed)
+        sliderBSMesh.position.x = data.SliderBS / 1000.0;
+      }
+    }
+
+    if (data.SliderTB !== undefined) {
+      elTB.textContent = `${data.SliderTB.toFixed(2)} mm`;
+      if (sliderTBMesh) {
+        sliderTBMesh.position.y = data.SliderTB / 1000.0;
+      }
+    }
   } catch (err) {
-    console.error('[MQTT] Parse error:', err);
+    console.error('[MQTT] Failed to parse payload:', err);
   }
+});
+
+// ==========================================
+// 6. RENDER LOOP & RESIZE HANDLING
+// ==========================================
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });

@@ -3,120 +3,151 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Festo Digital Twin</title>
-
-  <!-- Silence favicon 404 warning -->
-  <link rel="shortcut icon" href="#" />
-
-  <!-- Relative CSS link (Ensure case matches filename) -->
-  <link rel="stylesheet" href="styles.css" />
-
-  <!-- Three.js Core & Addons -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/GLTFLoader.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/webxr/ARButton.js"></script>
-
-  <!-- MQTT Client -->
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-
+  <title>Festo Digital Twin - 3D Viewer</title>
   <style>
-    /* Inline styles for overlay UI and AR buttons */
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    #status-card {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 10;
-      background: rgba(255, 255, 255, 0.9);
-      padding: 15px 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      backdrop-filter: blur(4px);
-    }
-
-    .status-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    #dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: #ff9800;
-      display: inline-block;
+      background-color: #1a1a1a;
+      color: #ffffff;
     }
 
     #canvas-container {
       width: 100vw;
       height: 100vh;
+      display: block;
     }
 
-    /* Custom iOS AR Quick Look Button styling */
-    .ios-ar-button {
+    /* UI Overlay Card */
+    #status-card {
       position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 12px 24px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 20px;
-      background: rgba(0, 0, 0, 0.8);
-      color: #ffffff;
-      font-size: 14px;
-      font-weight: 500;
-      text-decoration: none;
-      z-index: 999;
+      top: 20px;
+      left: 20px;
+      width: 280px;
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      z-index: 10;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #0091ff;
+    }
+
+    .telemetry-row {
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+
+    .telemetry-label {
+      color: #aaaaaa;
+    }
+
+    .telemetry-value {
+      font-family: monospace;
+      font-weight: bold;
+      color: #00ff88;
+    }
+
+    /* Controls Styling */
+    .section-divider {
+      margin: 14px 0 10px 0;
+      border: 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .control-group {
+      margin-bottom: 10px;
+    }
+
+    .control-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #cccccc;
+      margin-bottom: 4px;
+    }
+
+    .control-header span.val-display {
+      font-family: monospace;
+      color: #0091ff;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #0091ff;
+      cursor: pointer;
     }
   </style>
+
+  <!-- Import Three.js and MQTT via ES Modules importmap -->
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+        "mqtt": "https://unpkg.com/mqtt@5.3.4/dist/mqtt.esm.js"
+      }
+    }
+  </script>
 </head>
 <body>
 
-  <!-- Status Overlay -->
   <div id="status-card">
-    <div class="status-header">
-      <span id="dot"></span>
-      <strong id="status" style="color: #e65100;">Connecting...</strong>
+    <div class="card-title">Festo ELGD Telemetry</div>
+    
+    <div class="telemetry-row">
+      <span class="telemetry-label">Slider BS:</span>
+      <span id="pos-bs" class="telemetry-value">0.00 mm</span>
     </div>
-    <div><strong>SliderBS:</strong> <span id="val-bs">0 mm</span></div>
-    <div><strong>SliderTB:</strong> <span id="val-tb">0 mm</span></div>
+    
+    <div class="telemetry-row">
+      <span class="telemetry-label">Slider TB:</span>
+      <span id="pos-tb" class="telemetry-value">0.00 mm</span>
+    </div>
+
+    <hr class="section-divider" />
+    
+    <div class="card-title" style="font-size: 14px; margin-bottom: 8px;">Lighting Settings</div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <span>Key Light Intensity</span>
+        <span id="val-key" class="val-display">4.2</span>
+      </div>
+      <input type="range" id="light-key-slider" min="0" max="10" step="0.1" value="4.2">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <span>Ambient Intensity</span>
+        <span id="val-amb" class="val-display">0.8</span>
+      </div>
+      <input type="range" id="light-amb-slider" min="0" max="3" step="0.1" value="0.8">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <span>Light Elevation (Y)</span>
+        <span id="val-pos" class="val-display">-3.5</span>
+      </div>
+      <input type="range" id="light-pos-slider" min="-10" max="10" step="0.5" value="-3.5">
+    </div>
   </div>
 
-  <!-- iOS AR Quick Look Button (Triggers natively on iOS Safari/Chrome) -->
-  <a id="ios-ar-btn" class="ios-ar-button" rel="ar" href="./model/festo_actuators.usdz" style="display: none;">
-    <img src="https://developer.apple.com/ar/3d/glTF/AR_icon.png" width="18" height="18" alt="AR" />
-    <span>View in AR (iOS)</span>
-  </a>
-
-  <!-- 3D Canvas Container -->
   <div id="canvas-container"></div>
 
-  <!-- iOS vs WebXR Detection Script -->
-  <script>
-    // Detect iOS devices
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    
-    if (isIOS) {
-      // Show native Apple Quick Look button on iPhone/iPad
-      document.getElementById('ios-ar-btn').style.display = 'flex';
-    }
-  </script>
-
-  <!-- Main Application Script -->
-  <script src="./main.js"></script>
-
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
