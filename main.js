@@ -48,7 +48,7 @@ function updateGridColor(colorHex) {
 }
 
 // ==========================================
-// 3. UI TOGGLE & CONTROLS BINDING
+// 3. UI TOGGLE & LIGHTING CONTROL BINDINGS
 // ==========================================
 const statusCard = document.getElementById('status-card');
 const panelToggle = document.getElementById('panel-toggle');
@@ -57,30 +57,34 @@ panelToggle.addEventListener('click', () => {
   statusCard.classList.toggle('collapsed');
 });
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
-scene.add(ambientLight);
+// 1. Hemisphere Light
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.8);
+hemiLight.position.set(0, 20, 0);
+scene.add(hemiLight);
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 2.1);
+// 2. Key Directional Light
+const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
+keyLight.position.set(-3, -3.5, -0.5);
 keyLight.castShadow = true;
-keyLight.shadow.mapSize.width = 2048;
-keyLight.shadow.mapSize.height = 2048;
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 2.1);
+// 3. Fill Light
+const fillLight = new THREE.DirectionalLight(0xffffff, 4.0);
 fillLight.position.set(-5, 5, -5);
 scene.add(fillLight);
 
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
-scene.add(hemiLight);
+// 4. Ambient Light Baseline
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+scene.add(ambientLight);
 
-let currentLightDistance = 7.07;
+let currentLightDistance = Math.sqrt(keyLight.position.x ** 2 + keyLight.position.z ** 2);
+
 function updateKeyLightPosition(angleDeg, heightY) {
   const rad = (angleDeg * Math.PI) / 180;
   keyLight.position.x = currentLightDistance * Math.cos(rad);
   keyLight.position.z = currentLightDistance * Math.sin(rad);
   keyLight.position.y = heightY;
 }
-updateKeyLightPosition(165, 0.0);
 
 document.getElementById('color-bg-picker').addEventListener('input', (e) => {
   scene.background.set(e.target.value);
@@ -185,7 +189,7 @@ loader.load(
 );
 
 // ==========================================
-// 5. HIVEMQ CLOUD CONNECTION (PORT 8884)
+// 5. HIVEMQ CLOUD CONNECTION
 // ==========================================
 const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
