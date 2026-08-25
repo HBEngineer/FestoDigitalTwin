@@ -50,7 +50,7 @@ panelToggle.addEventListener('click', () => {
 });
 
 // ==========================================
-// 3. DEFAULT LIGHTING SETUP (NEW DEFAULT VALUES)
+// 3. DEFAULT LIGHTING SETUP
 // ==========================================
 const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
 scene.add(ambientLight);
@@ -200,19 +200,22 @@ loader.load(
 );
 
 // ==========================================
-// 6. BASIC MQTT WEBSOCKET CONNECTION (EXACT YESTERDAY VERSION)
+// 6. MQTT WEBSOCKET CONNECTION (FIXED BROKER ENDPOINT)
 // ==========================================
 const mqttDot = document.getElementById('mqtt-dot');
 const mqttStatusText = document.getElementById('mqtt-status-text');
 
-const MQTT_BROKER = 'wss://0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud:8843/mqtt';
+// Fixed HiveMQ WebSocket URL (removed trailing /mqtt path)
+const MQTT_BROKER = 'wss://0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud:8843';
 const MQTT_TOPIC = 'festo/actuators/positions';
 
 const client = mqtt.connect(MQTT_BROKER, {
+  clientId: 'festo_web_' + Math.random().toString(16).substring(2, 10),
   username: 'FestoPLC1',
   password: 'FestoPLC1',
   clean: true,
-  connectTimeout: 4000
+  connectTimeout: 5000,
+  reconnectPeriod: 2000
 });
 
 client.on('connect', () => {
