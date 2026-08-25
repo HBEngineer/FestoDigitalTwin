@@ -61,13 +61,13 @@ scene.add(fillLight);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
-// Group to hold model, base, and grid
+// Group to hold model and grid
 const arGroup = new THREE.Group();
 scene.add(arGroup);
 
 // --- GRID HELPER ---
 const gridHelper = new THREE.GridHelper(10, 20, 0x0091ff, 0xcccccc);
-gridHelper.position.y = -0.01; // Slightly below ground level to prevent z-fighting
+gridHelper.position.y = -0.01;
 arGroup.add(gridHelper);
 
 // WebXR Session handlers
@@ -81,43 +81,7 @@ renderer.xr.addEventListener('sessionend', () => {
 });
 
 // ==========================================
-// 3. BASE PLATE
-// ==========================================
-function createActuatorBase(modelBox) {
-  const size = new THREE.Vector3();
-  const center = new THREE.Vector3();
-  modelBox.getSize(size);
-  modelBox.getCenter(center);
-
-  const baseWidth = size.x * 2.4;
-  const baseDepth = size.z * 2.4;
-  const baseThickness = 0.01;
-
-  const baseMaterial = new THREE.MeshStandardMaterial({
-    color: 0x22252a,
-    metalness: 0.85,
-    roughness: 0.25
-  });
-
-  const baseGeometry = new THREE.BoxGeometry(baseWidth, baseThickness, baseDepth);
-  const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
-
-  baseMesh.position.set(
-    center.x,
-    modelBox.min.y - (baseThickness / 2),
-    center.z
-  );
-  baseMesh.receiveShadow = true;
-  baseMesh.castShadow = true;
-
-  arGroup.add(baseMesh);
-
-  // Position the grid directly under the base plate
-  gridHelper.position.y = baseMesh.position.y - (baseThickness / 2) - 0.001;
-}
-
-// ==========================================
-// 4. LOAD GLB MODEL
+// 3. LOAD GLB MODEL
 // ==========================================
 let sliderBSNode = null;
 let sliderTBNode = null;
@@ -155,8 +119,9 @@ loader.load(
 
     arGroup.add(model);
 
+    // Position grid right at the bottom of the model
     const box = new THREE.Box3().setFromObject(model);
-    createActuatorBase(box);
+    gridHelper.position.y = box.min.y - 0.001;
 
     const center = box.getCenter(new THREE.Vector3());
     controls.target.copy(center);
@@ -173,7 +138,7 @@ loader.load(
 );
 
 // ==========================================
-// 5. ANIMATION & RENDER LOOP
+// 4. ANIMATION & RENDER LOOP
 // ==========================================
 function animate() {
   if (sliderBSNode) {
@@ -200,7 +165,7 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 6. UPDATE TARGET VALUES FROM MQTT
+// 5. UPDATE TARGET VALUES FROM MQTT
 // ==========================================
 function updateSliderPosition(sliderName, positionVal) {
   if (sliderName === 'SliderBS') {
@@ -217,7 +182,7 @@ function updateSliderPosition(sliderName, positionVal) {
 }
 
 // ==========================================
-// 7. HIVEMQ CLOUD CONNECTION
+// 6. HIVEMQ CLOUD CONNECTION
 // ==========================================
 const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
