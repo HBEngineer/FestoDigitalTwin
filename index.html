@@ -3,325 +3,120 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Festo Digital Twin - 3D Viewer</title>
+  <title>Festo Digital Twin</title>
+
+  <!-- Silence favicon 404 warning -->
+  <link rel="shortcut icon" href="#" />
+
+  <!-- Relative CSS link (Ensure case matches filename) -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Three.js Core & Addons -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/js/webxr/ARButton.js"></script>
+
+  <!-- MQTT Client -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
   <style>
+    /* Inline styles for overlay UI and AR buttons */
     body {
       margin: 0;
       padding: 0;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #222222;
-      color: #ffffff;
+    }
+
+    #status-card {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(4px);
+    }
+
+    .status-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    #dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #ff9800;
+      display: inline-block;
     }
 
     #canvas-container {
       width: 100vw;
       height: 100vh;
-      display: block;
     }
 
-    /* Scrollable UI Overlay Card */
-    #status-card {
+    /* Custom iOS AR Quick Look Button styling */
+    .ios-ar-button {
       position: absolute;
-      top: 20px;
-      left: 20px;
-      width: 290px;
-      max-height: calc(100vh - 60px);
-      background: rgba(30, 30, 30, 0.88);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 12px;
-      padding: 16px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
-      z-index: 10;
-      transition: all 0.3s ease;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .card-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: #0091ff;
-      letter-spacing: 0.5px;
-    }
-
-    .toggle-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.8);
       color: #ffffff;
-      border-radius: 6px;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: background 0.2s;
-      padding: 0;
-    }
-
-    .toggle-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-
-    .arrow-icon {
-      width: 10px;
-      height: 10px;
-      border-right: 2px solid #ffffff;
-      border-bottom: 2px solid #ffffff;
-      transform: rotate(45deg);
-      transition: transform 0.3s ease;
-      margin-bottom: 3px;
-    }
-
-    #status-card.collapsed .arrow-icon {
-      transform: rotate(-135deg);
-      margin-bottom: -3px;
-    }
-
-    /* Collapsible Content Wrapper */
-    #panel-content {
-      overflow-y: auto;
-      max-height: calc(100vh - 120px);
-      margin-top: 10px;
-      transition: max-height 0.3s ease, opacity 0.2s ease;
-    }
-
-    #status-card.collapsed #panel-content {
-      max-height: 0;
-      opacity: 0;
-      margin-top: 0;
-      overflow: hidden;
-    }
-
-    #panel-content::-webkit-scrollbar {
-      width: 4px;
-    }
-    #panel-content::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
-    }
-
-    /* Connection Status Indicators */
-    .connection-wrapper {
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      z-index: 999;
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 12px;
-      margin-bottom: 12px;
-      padding: 6px 10px;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 6px;
-    }
-
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: #ff4444;
-      box-shadow: 0 0 8px #ff4444;
-      transition: background-color 0.3s, box-shadow 0.3s;
-    }
-
-    .telemetry-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-
-    .telemetry-label {
-      color: #aaaaaa;
-    }
-
-    .telemetry-value {
-      font-family: monospace;
-      font-weight: bold;
-      color: #00ff88;
-    }
-
-    .section-divider {
-      margin: 14px 0 10px 0;
-      border: 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-    }
-
-    .section-subtitle {
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 8px;
-      color: #0091ff;
-    }
-
-    .control-group {
-      margin-bottom: 10px;
-    }
-
-    .control-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: #cccccc;
-      margin-bottom: 4px;
-    }
-
-    .control-header span.val-display {
-      font-family: monospace;
-      color: #0091ff;
-    }
-
-    .color-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 12px;
-      color: #cccccc;
-    }
-
-    input[type="range"] {
-      width: 100%;
-      accent-color: #0091ff;
-      cursor: pointer;
-    }
-
-    input[type="color"] {
-      -webkit-appearance: none;
-      border: none;
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      cursor: pointer;
-      background: none;
-    }
-    input[type="color"]::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-    input[type="color"]::-webkit-color-swatch {
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 6px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
   </style>
-
-  <script type="importmap">
-    {
-      "imports": {
-        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-        "mqtt": "https://unpkg.com/mqtt@5.3.4/dist/mqtt.esm.js"
-      }
-    }
-  </script>
 </head>
 <body>
 
+  <!-- Status Overlay -->
   <div id="status-card">
-    <div class="card-header" id="panel-toggle">
-      <div class="card-title">Control</div>
-      <button class="toggle-btn" id="toggle-icon">
-        <div class="arrow-icon"></div>
-      </button>
+    <div class="status-header">
+      <span id="dot"></span>
+      <strong id="status" style="color: #e65100;">Connecting...</strong>
     </div>
-
-    <div id="panel-content">
-      <div class="connection-wrapper">
-        <div id="dot" class="status-dot"></div>
-        <span id="status" style="color: #ff4444;">Connecting...</span>
-      </div>
-
-      <div class="telemetry-row">
-        <span class="telemetry-label">Slider BS:</span>
-        <span id="pos-bs" class="telemetry-value">0.00 mm</span>
-      </div>
-      
-      <div class="telemetry-row">
-        <span class="telemetry-label">Slider TB:</span>
-        <span id="pos-tb" class="telemetry-value">0.00 mm</span>
-      </div>
-
-      <hr class="section-divider" />
-      <div class="section-subtitle">Environment & Colors</div>
-
-      <div class="color-row">
-        <span>Background Color</span>
-        <input type="color" id="color-bg-picker" value="#222222">
-      </div>
-
-      <div class="color-row">
-        <span>Floor Grid Lines</span>
-        <input type="color" id="color-grid-picker" value="#0091ff">
-      </div>
-
-      <div class="color-row">
-        <span>Key Light Color</span>
-        <input type="color" id="color-light-picker" value="#ffffff">
-      </div>
-
-      <hr class="section-divider" />
-      <div class="section-subtitle">Full Lighting Suite</div>
-
-      <div class="control-group">
-        <div class="control-header">
-          <span>Key Light Intensity</span>
-          <span id="val-key" class="val-display">4.2</span>
-        </div>
-        <input type="range" id="light-key-slider" min="0" max="10" step="0.1" value="4.2">
-      </div>
-
-      <div class="control-group">
-        <div class="control-header">
-          <span>Ambient Intensity</span>
-          <span id="val-amb" class="val-display">0.8</span>
-        </div>
-        <input type="range" id="light-amb-slider" min="0" max="4" step="0.1" value="0.8">
-      </div>
-
-      <div class="control-group">
-        <div class="control-header">
-          <span>Fill Light Intensity</span>
-          <span id="val-fill" class="val-display">4.0</span>
-        </div>
-        <input type="range" id="light-fill-slider" min="0" max="5" step="0.1" value="4.0">
-      </div>
-
-      <div class="control-group">
-        <div class="control-header">
-          <span>Light Elevation (Height Y)</span>
-          <span id="val-posy" class="val-display">-3.5</span>
-        </div>
-        <input type="range" id="light-posy-slider" min="-10" max="15" step="0.5" value="-3.5">
-      </div>
-
-      <div class="control-group">
-        <div class="control-header">
-          <span>Light Orbit Angle (X/Z)</span>
-          <span id="val-posxz" class="val-display">229°</span>
-        </div>
-        <input type="range" id="light-posxz-slider" min="0" max="360" step="1" value="229">
-      </div>
-
-      <div class="control-group">
-        <div class="control-header">
-          <span>Hemisphere Light (Sky/Ground)</span>
-          <span id="val-hemi" class="val-display">2.8</span>
-        </div>
-        <input type="range" id="light-hemi-slider" min="0" max="5" step="0.1" value="2.8">
-      </div>
-    </div>
+    <div><strong>SliderBS:</strong> <span id="val-bs">0 mm</span></div>
+    <div><strong>SliderTB:</strong> <span id="val-tb">0 mm</span></div>
   </div>
 
+  <!-- iOS AR Quick Look Button (Triggers natively on iOS Safari/Chrome) -->
+  <a id="ios-ar-btn" class="ios-ar-button" rel="ar" href="./model/festo_actuators.usdz" style="display: none;">
+    <img src="https://developer.apple.com/ar/3d/glTF/AR_icon.png" width="18" height="18" alt="AR" />
+    <span>View in AR (iOS)</span>
+  </a>
+
+  <!-- 3D Canvas Container -->
   <div id="canvas-container"></div>
 
-  <script type="module" src="./main.js"></script>
+  <!-- iOS vs WebXR Detection Script -->
+  <script>
+    // Detect iOS devices
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    if (isIOS) {
+      // Show native Apple Quick Look button on iPhone/iPad
+      document.getElementById('ios-ar-btn').style.display = 'flex';
+    }
+  </script>
+
+  <!-- Main Application Script -->
+  <script src="./main.js"></script>
+
 </body>
 </html>
