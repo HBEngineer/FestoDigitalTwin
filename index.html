@@ -79,6 +79,78 @@
       gap: 8px;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
+
+    /* Retractable Lighting Control Panel */
+    #light-panel {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(4px);
+      width: 240px;
+      transition: all 0.3s ease;
+      overflow: hidden;
+    }
+
+    #light-panel-header {
+      padding: 12px 16px;
+      background: rgba(240, 240, 240, 0.9);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      font-size: 14px;
+      user-select: none;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+    }
+
+    #light-panel-body {
+      padding: 15px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 400px;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      opacity: 1;
+    }
+
+    #light-panel.collapsed #light-panel-body {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+    }
+
+    .control-group label {
+      display: flex;
+      justify-content: space-between;
+      color: #333;
+    }
+
+    .control-group input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+    }
+
+    .control-group input[type="color"] {
+      border: none;
+      width: 100%;
+      height: 28px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
@@ -91,6 +163,40 @@
     </div>
     <div><strong>SliderBS:</strong> <span id="val-bs">0 mm</span></div>
     <div><strong>SliderTB:</strong> <span id="val-tb">0 mm</span></div>
+  </div>
+
+  <!-- Retractable Lighting Panel -->
+  <div id="light-panel">
+    <div id="light-panel-header">
+      <span>Lighting Controls</span>
+      <span id="toggle-icon">?</span>
+    </div>
+    <div id="light-panel-body">
+      <div class="control-group">
+        <label for="ctrl-hemi">Hemi Light: <span id="lbl-hemi">2.8</span></label>
+        <input type="range" id="ctrl-hemi" min="0" max="10" step="0.1" value="2.8" />
+      </div>
+      <div class="control-group">
+        <label for="ctrl-key">Key Light: <span id="lbl-key">4.2</span></label>
+        <input type="range" id="ctrl-key" min="0" max="10" step="0.1" value="4.2" />
+      </div>
+      <div class="control-group">
+        <label for="ctrl-fill">Fill Light: <span id="lbl-fill">4.0</span></label>
+        <input type="range" id="ctrl-fill" min="0" max="10" step="0.1" value="4.0" />
+      </div>
+      <div class="control-group">
+        <label for="ctrl-ambient">Ambient Light: <span id="lbl-ambient">0.8</span></label>
+        <input type="range" id="ctrl-ambient" min="0" max="5" step="0.1" value="0.8" />
+      </div>
+      <div class="control-group">
+        <label for="ctrl-key-color">Key Light Color</label>
+        <input type="color" id="ctrl-key-color" value="#ffffff" />
+      </div>
+      <div class="control-group">
+        <label for="ctrl-bg-color">Background Color</label>
+        <input type="color" id="ctrl-bg-color" value="#f4f6f9" />
+      </div>
+    </div>
   </div>
 
   <!-- iOS AR Quick Look Button -->

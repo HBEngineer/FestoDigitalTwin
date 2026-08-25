@@ -73,15 +73,61 @@ arGroup.add(gridHelper);
 // WebXR Session handlers
 renderer.xr.addEventListener('sessionstart', () => {
   scene.background = null;
-  gridHelper.visible = false; // Hide grid in AR mode
+  gridHelper.visible = false;
 });
 renderer.xr.addEventListener('sessionend', () => {
-  scene.background = new THREE.Color(0xf4f6f9);
+  scene.background = new THREE.Color(document.getElementById('ctrl-bg-color').value);
   gridHelper.visible = true;
 });
 
 // ==========================================
-// 3. LOAD GLB MODEL
+// 3. RETRACTABLE UI & LIGHT CONTROL BINDINGS
+// ==========================================
+const lightPanel = document.getElementById('light-panel');
+const panelHeader = document.getElementById('light-panel-header');
+const toggleIcon = document.getElementById('toggle-icon');
+
+panelHeader.addEventListener('click', () => {
+  lightPanel.classList.toggle('collapsed');
+  toggleIcon.innerText = lightPanel.classList.contains('collapsed') ? '?' : '?';
+});
+
+document.getElementById('ctrl-hemi').addEventListener('input', (e) => {
+  const val = parseFloat(e.target.value);
+  hemiLight.intensity = val;
+  document.getElementById('lbl-hemi').innerText = val.toFixed(1);
+});
+
+document.getElementById('ctrl-key').addEventListener('input', (e) => {
+  const val = parseFloat(e.target.value);
+  keyLight.intensity = val;
+  document.getElementById('lbl-key').innerText = val.toFixed(1);
+});
+
+document.getElementById('ctrl-fill').addEventListener('input', (e) => {
+  const val = parseFloat(e.target.value);
+  fillLight.intensity = val;
+  document.getElementById('lbl-fill').innerText = val.toFixed(1);
+});
+
+document.getElementById('ctrl-ambient').addEventListener('input', (e) => {
+  const val = parseFloat(e.target.value);
+  ambientLight.intensity = val;
+  document.getElementById('lbl-ambient').innerText = val.toFixed(1);
+});
+
+document.getElementById('ctrl-key-color').addEventListener('input', (e) => {
+  keyLight.color.set(e.target.value);
+});
+
+document.getElementById('ctrl-bg-color').addEventListener('input', (e) => {
+  if (!renderer.xr.isPresenting) {
+    scene.background.set(e.target.value);
+  }
+});
+
+// ==========================================
+// 4. LOAD GLB MODEL
 // ==========================================
 let sliderBSNode = null;
 let sliderTBNode = null;
@@ -119,7 +165,6 @@ loader.load(
 
     arGroup.add(model);
 
-    // Position grid right at the bottom of the model
     const box = new THREE.Box3().setFromObject(model);
     gridHelper.position.y = box.min.y - 0.001;
 
@@ -138,7 +183,7 @@ loader.load(
 );
 
 // ==========================================
-// 4. ANIMATION & RENDER LOOP
+// 5. ANIMATION & RENDER LOOP
 // ==========================================
 function animate() {
   if (sliderBSNode) {
@@ -165,7 +210,7 @@ window.addEventListener('resize', () => {
 });
 
 // ==========================================
-// 5. UPDATE TARGET VALUES FROM MQTT
+// 6. UPDATE TARGET VALUES FROM MQTT
 // ==========================================
 function updateSliderPosition(sliderName, positionVal) {
   if (sliderName === 'SliderBS') {
@@ -182,7 +227,7 @@ function updateSliderPosition(sliderName, positionVal) {
 }
 
 // ==========================================
-// 6. HIVEMQ CLOUD CONNECTION
+// 7. HIVEMQ CLOUD CONNECTION
 // ==========================================
 const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
