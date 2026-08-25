@@ -33,7 +33,6 @@ controls.dampingFactor = 0.05;
 let gridHelper = new THREE.GridHelper(10, 10, 0x0091ff, 0x444444);
 scene.add(gridHelper);
 
-// Function to recreate floor grid when primary color changes
 function updateGridColor(colorHex) {
   scene.remove(gridHelper);
   gridHelper = new THREE.GridHelper(10, 10, new THREE.Color(colorHex), 0x444444);
@@ -41,7 +40,19 @@ function updateGridColor(colorHex) {
 }
 
 // ==========================================
-// 2. FULL LIGHTING SUITE SETUP
+// 2. RETRACTILE PANEL TOGGLE LOGIC
+// ==========================================
+const statusCard = document.getElementById('status-card');
+const panelToggle = document.getElementById('panel-toggle');
+const toggleIcon = document.getElementById('toggle-icon');
+
+panelToggle.addEventListener('click', () => {
+  statusCard.classList.toggle('collapsed');
+  toggleIcon.textContent = statusCard.classList.contains('collapsed') ? '?' : '?';
+});
+
+// ==========================================
+// 3. DEFAULT LIGHTING SETUP
 // ==========================================
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
 scene.add(ambientLight);
@@ -60,8 +71,7 @@ scene.add(fillLight);
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
 scene.add(hemiLight);
 
-// Calculate X and Z positions based on angle in degrees
-let currentLightDistance = 7.07; // Distance from center
+let currentLightDistance = 7.07;
 function updateKeyLightPosition(angleDeg, heightY) {
   const rad = (angleDeg * Math.PI) / 180;
   keyLight.position.x = currentLightDistance * Math.cos(rad);
@@ -70,9 +80,8 @@ function updateKeyLightPosition(angleDeg, heightY) {
 }
 
 // ==========================================
-// 3. UI COLOR & LIGHT LISTENERS
+// 4. UI LISTENERS & CONTROL BINDINGS
 // ==========================================
-// Color Pickers
 const pickerBg = document.getElementById('color-bg-picker');
 const pickerGrid = document.getElementById('color-grid-picker');
 const pickerLight = document.getElementById('color-light-picker');
@@ -89,7 +98,6 @@ pickerLight.addEventListener('input', (e) => {
   keyLight.color.set(e.target.value);
 });
 
-// Light Sliders & Value Displays
 const sliderKey = document.getElementById('light-key-slider');
 const sliderAmb = document.getElementById('light-amb-slider');
 const sliderFill = document.getElementById('light-fill-slider');
@@ -141,7 +149,7 @@ sliderHemi.addEventListener('input', (e) => {
 });
 
 // ==========================================
-// 4. MODEL LOADING & AUTO-CENTERING
+// 5. MODEL LOADING & AUTO-CENTERING
 // ==========================================
 let sliderBSMesh = null;
 let sliderTBMesh = null;
@@ -175,7 +183,6 @@ loader.load(
       }
     });
 
-    // Auto-center camera to bounding box
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
@@ -193,8 +200,11 @@ loader.load(
 );
 
 // ==========================================
-// 5. MQTT WEBSOCKET CONNECTION
+// 6. MQTT WEBSOCKET CONNECTION & STATUS
 // ==========================================
+const mqttDot = document.getElementById('mqtt-dot');
+const mqttStatusText = document.getElementById('mqtt-status-text');
+
 const MQTT_BROKER = 'wss://0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud:8843/mqtt';
 const MQTT_TOPIC = 'festo/actuators/positions';
 
@@ -207,7 +217,23 @@ const client = mqtt.connect(MQTT_BROKER, {
 
 client.on('connect', () => {
   console.log('[MQTT] Connected to HiveMQ Cloud via WebSocket!');
+  mqttDot.classList.add('connected');
+  mqttStatusText.textContent = 'MQTT Connected';
+  mqttStatusText.style.color = '#00ff88';
   client.subscribe(MQTT_TOPIC);
+});
+
+client.on('offline', () => {
+  mqttDot.classList.remove('connected');
+  mqttStatusText.textContent = 'MQTT Offline';
+  mqttStatusText.style.color = '#ff4444';
+});
+
+client.on('error', (err) => {
+  console.error('[MQTT Error]', err);
+  mqttDot.classList.remove('connected');
+  mqttStatusText.textContent = 'MQTT Error';
+  mqttStatusText.style.color = '#ff4444';
 });
 
 client.on('message', (topic, message) => {
@@ -233,7 +259,7 @@ client.on('message', (topic, message) => {
 });
 
 // ==========================================
-// 6. RENDER LOOP
+// 7. RENDER LOOP
 // ==========================================
 function animate() {
   requestAnimationFrame(animate);

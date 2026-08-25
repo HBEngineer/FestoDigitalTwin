@@ -27,7 +27,6 @@
       left: 20px;
       width: 290px;
       max-height: calc(100vh - 60px);
-      overflow-y: auto;
       background: rgba(30, 30, 30, 0.88);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -35,23 +34,93 @@
       padding: 16px;
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
       z-index: 10;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
     }
 
-    /* Custom scrollbar for control panel */
-    #status-card::-webkit-scrollbar {
-      width: 4px;
-    }
-    #status-card::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 4px;
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
     }
 
     .card-title {
       font-size: 15px;
       font-weight: 600;
-      margin-bottom: 10px;
       color: #0091ff;
       letter-spacing: 0.5px;
+    }
+
+    .toggle-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: #ffffff;
+      border-radius: 6px;
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .toggle-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Collapsible Content Wrapper */
+    #panel-content {
+      overflow-y: auto;
+      max-height: calc(100vh - 120px);
+      margin-top: 10px;
+      transition: max-height 0.3s ease, opacity 0.2s ease;
+    }
+
+    #status-card.collapsed #panel-content {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0;
+      overflow: hidden;
+    }
+
+    /* Custom scrollbar */
+    #panel-content::-webkit-scrollbar {
+      width: 4px;
+    }
+    #panel-content::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
+    /* MQTT Connection Status Indicator */
+    .connection-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      margin-bottom: 12px;
+      padding: 6px 10px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 6px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #ff4444; /* Red by default */
+      box-shadow: 0 0 8px #ff4444;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .status-dot.connected {
+      background-color: #00ff88; /* Green when connected */
+      box-shadow: 0 0 8px #00ff88;
     }
 
     .telemetry-row {
@@ -76,6 +145,13 @@
       margin: 14px 0 10px 0;
       border: 0;
       border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #0091ff;
     }
 
     .control-group {
@@ -141,88 +217,101 @@
 <body>
 
   <div id="status-card">
-    <!-- Telemetry Section -->
-    <div class="card-title">Festo ELGD Telemetry</div>
-    
-    <div class="telemetry-row">
-      <span class="telemetry-label">Slider BS:</span>
-      <span id="pos-bs" class="telemetry-value">0.00 mm</span>
-    </div>
-    
-    <div class="telemetry-row">
-      <span class="telemetry-label">Slider TB:</span>
-      <span id="pos-tb" class="telemetry-value">0.00 mm</span>
+    <!-- Header with Toggle Button -->
+    <div class="card-header" id="panel-toggle">
+      <div class="card-title">Festo Controls</div>
+      <button class="toggle-btn" id="toggle-icon">?</button>
     </div>
 
-    <!-- Color Controls Section -->
-    <hr class="section-divider" />
-    <div class="card-title">Environment & Colors</div>
-
-    <div class="color-row">
-      <span>Background Color</span>
-      <input type="color" id="color-bg-picker" value="#222222">
-    </div>
-
-    <div class="color-row">
-      <span>Floor Grid Lines</span>
-      <input type="color" id="color-grid-picker" value="#0091ff">
-    </div>
-
-    <div class="color-row">
-      <span>Key Light Color</span>
-      <input type="color" id="color-light-picker" value="#ffffff">
-    </div>
-
-    <!-- Full Lighting Controls Section -->
-    <hr class="section-divider" />
-    <div class="card-title">Full Lighting Suite</div>
-
-    <div class="control-group">
-      <div class="control-header">
-        <span>Key Light Intensity</span>
-        <span id="val-key" class="val-display">4.2</span>
+    <!-- Collapsible Content -->
+    <div id="panel-content">
+      <!-- MQTT Status Indicator -->
+      <div class="connection-wrapper">
+        <div id="mqtt-dot" class="status-dot"></div>
+        <span id="mqtt-status-text" style="color: #aaaaaa;">MQTT Disconnected</span>
       </div>
-      <input type="range" id="light-key-slider" min="0" max="10" step="0.1" value="4.2">
-    </div>
 
-    <div class="control-group">
-      <div class="control-header">
-        <span>Ambient Intensity</span>
-        <span id="val-amb" class="val-display">1.5</span>
+      <!-- Telemetry Section -->
+      <div class="telemetry-row">
+        <span class="telemetry-label">Slider BS:</span>
+        <span id="pos-bs" class="telemetry-value">0.00 mm</span>
       </div>
-      <input type="range" id="light-amb-slider" min="0" max="4" step="0.1" value="1.5">
-    </div>
+      
+      <div class="telemetry-row">
+        <span class="telemetry-label">Slider TB:</span>
+        <span id="pos-tb" class="telemetry-value">0.00 mm</span>
+      </div>
 
-    <div class="control-group">
-      <div class="control-header">
-        <span>Fill Light Intensity</span>
-        <span id="val-fill" class="val-display">1.5</span>
-      </div>
-      <input type="range" id="light-fill-slider" min="0" max="5" step="0.1" value="1.5">
-    </div>
+      <!-- Color Controls Section -->
+      <hr class="section-divider" />
+      <div class="section-subtitle">Environment & Colors</div>
 
-    <div class="control-group">
-      <div class="control-header">
-        <span>Light Elevation (Height Y)</span>
-        <span id="val-posy" class="val-display">5.0</span>
+      <div class="color-row">
+        <span>Background Color</span>
+        <input type="color" id="color-bg-picker" value="#222222">
       </div>
-      <input type="range" id="light-posy-slider" min="-10" max="15" step="0.5" value="5.0">
-    </div>
 
-    <div class="control-group">
-      <div class="control-header">
-        <span>Light Orbit Angle (X/Z)</span>
-        <span id="val-posxz" class="val-display">45°</span>
+      <div class="color-row">
+        <span>Floor Grid Lines</span>
+        <input type="color" id="color-grid-picker" value="#0091ff">
       </div>
-      <input type="range" id="light-posxz-slider" min="0" max="360" step="5" value="45">
-    </div>
 
-    <div class="control-group">
-      <div class="control-header">
-        <span>Hemisphere Light (Sky/Ground)</span>
-        <span id="val-hemi" class="val-display">1.0</span>
+      <div class="color-row">
+        <span>Key Light Color</span>
+        <input type="color" id="color-light-picker" value="#ffffff">
       </div>
-      <input type="range" id="light-hemi-slider" min="0" max="3" step="0.1" value="1.0">
+
+      <!-- Full Lighting Controls Section -->
+      <hr class="section-divider" />
+      <div class="section-subtitle">Full Lighting Suite</div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Key Light Intensity</span>
+          <span id="val-key" class="val-display">4.2</span>
+        </div>
+        <input type="range" id="light-key-slider" min="0" max="10" step="0.1" value="4.2">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Ambient Intensity</span>
+          <span id="val-amb" class="val-display">1.5</span>
+        </div>
+        <input type="range" id="light-amb-slider" min="0" max="4" step="0.1" value="1.5">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Fill Light Intensity</span>
+          <span id="val-fill" class="val-display">1.5</span>
+        </div>
+        <input type="range" id="light-fill-slider" min="0" max="5" step="0.1" value="1.5">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Light Elevation (Height Y)</span>
+          <span id="val-posy" class="val-display">5.0</span>
+        </div>
+        <input type="range" id="light-posy-slider" min="-10" max="15" step="0.5" value="5.0">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Light Orbit Angle (X/Z)</span>
+          <span id="val-posxz" class="val-display">45°</span>
+        </div>
+        <input type="range" id="light-posxz-slider" min="0" max="360" step="5" value="45">
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <span>Hemisphere Light (Sky/Ground)</span>
+          <span id="val-hemi" class="val-display">1.0</span>
+        </div>
+        <input type="range" id="light-hemi-slider" min="0" max="3" step="0.1" value="1.0">
+      </div>
     </div>
   </div>
 
