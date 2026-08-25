@@ -59,18 +59,33 @@
       border: none;
       color: #ffffff;
       border-radius: 6px;
-      width: 26px;
-      height: 26px;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 12px;
       cursor: pointer;
       transition: background 0.2s;
+      padding: 0;
     }
 
     .toggle-btn:hover {
       background: rgba(255, 255, 255, 0.2);
+    }
+
+    .arrow-icon {
+      width: 10px;
+      height: 10px;
+      border-right: 2px solid #ffffff;
+      border-bottom: 2px solid #ffffff;
+      transform: rotate(45deg); /* Down arrow */
+      transition: transform 0.3s ease;
+      margin-bottom: 3px;
+    }
+
+    #status-card.collapsed .arrow-icon {
+      transform: rotate(-135deg); /* Up arrow when collapsed */
+      margin-bottom: -3px;
     }
 
     /* Collapsible Content Wrapper */
@@ -217,18 +232,20 @@
 <body>
 
   <div id="status-card">
-    <!-- Header with Toggle Button -->
+    <!-- Header titled "Control" with SVG Arrow Toggle Button -->
     <div class="card-header" id="panel-toggle">
-      <div class="card-title">Festo Controls</div>
-      <button class="toggle-btn" id="toggle-icon">?</button>
+      <div class="card-title">Control</div>
+      <button class="toggle-btn" id="toggle-icon">
+        <div class="arrow-icon"></div>
+      </button>
     </div>
 
     <!-- Collapsible Content -->
     <div id="panel-content">
-      <!-- MQTT Status Indicator -->
+      <!-- MQTT Connection Status Indicator -->
       <div class="connection-wrapper">
         <div id="mqtt-dot" class="status-dot"></div>
-        <span id="mqtt-status-text" style="color: #aaaaaa;">MQTT Disconnected</span>
+        <span id="mqtt-status-text" style="color: #aaaaaa;">Connecting to MQTT...</span>
       </div>
 
       <!-- Telemetry Section -->

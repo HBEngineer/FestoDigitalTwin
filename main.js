@@ -44,15 +44,13 @@ function updateGridColor(colorHex) {
 // ==========================================
 const statusCard = document.getElementById('status-card');
 const panelToggle = document.getElementById('panel-toggle');
-const toggleIcon = document.getElementById('toggle-icon');
 
 panelToggle.addEventListener('click', () => {
   statusCard.classList.toggle('collapsed');
-  toggleIcon.textContent = statusCard.classList.contains('collapsed') ? '?' : '?';
 });
 
 // ==========================================
-// 3. DEFAULT LIGHTING SETUP
+// 3. LIGHTING SETUP
 // ==========================================
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
 scene.add(ambientLight);
@@ -200,7 +198,7 @@ loader.load(
 );
 
 // ==========================================
-// 6. MQTT WEBSOCKET CONNECTION & STATUS
+// 6. MQTT WEBSOCKET CONNECTION (HIVEMQ SECURE FIX)
 // ==========================================
 const mqttDot = document.getElementById('mqtt-dot');
 const mqttStatusText = document.getElementById('mqtt-status-text');
@@ -208,11 +206,16 @@ const mqttStatusText = document.getElementById('mqtt-status-text');
 const MQTT_BROKER = 'wss://0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud:8843/mqtt';
 const MQTT_TOPIC = 'festo/actuators/positions';
 
+// Robust WebSocket options for HiveMQ Cloud TLS
 const client = mqtt.connect(MQTT_BROKER, {
   username: 'FestoPLC1',
   password: 'FestoPLC1',
+  clientId: 'web_twin_' + Math.random().toString(16).substring(2, 8),
+  keepalive: 30,
   clean: true,
-  connectTimeout: 4000
+  reconnectPeriod: 2000,
+  connectTimeout: 10000,
+  rejectUnauthorized: true
 });
 
 client.on('connect', () => {
@@ -220,7 +223,9 @@ client.on('connect', () => {
   mqttDot.classList.add('connected');
   mqttStatusText.textContent = 'MQTT Connected';
   mqttStatusText.style.color = '#00ff88';
-  client.subscribe(MQTT_TOPIC);
+  client.subscribe(MQTT_TOPIC, (err) => {
+    if (err) console.error('[MQTT Subscribe Error]', err);
+  });
 });
 
 client.on('offline', () => {
@@ -229,10 +234,16 @@ client.on('offline', () => {
   mqttStatusText.style.color = '#ff4444';
 });
 
+client.on('reconnect', () => {
+  mqttDot.classList.remove('connected');
+  mqttStatusText.textContent = 'Reconnecting...';
+  mqttStatusText.style.color = '#ffbb00';
+});
+
 client.on('error', (err) => {
   console.error('[MQTT Error]', err);
   mqttDot.classList.remove('connected');
-  mqttStatusText.textContent = 'MQTT Error';
+  mqttStatusText.textContent = 'MQTT Connection Error';
   mqttStatusText.style.color = '#ff4444';
 });
 
