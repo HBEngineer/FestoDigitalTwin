@@ -33,7 +33,7 @@ renderer.xr.enabled = true;
 
 container.appendChild(renderer.domElement);
 
-// Append AR Button safely (supports window.ARButton and THREE.ARButton)
+// Append AR Button safely
 const arBtn = window.ARButton || (typeof THREE !== 'undefined' && THREE.ARButton);
 if (arBtn) {
   document.body.appendChild(arBtn.createButton(renderer, { requiredFeatures: ['hit-test'] }));
@@ -61,16 +61,23 @@ scene.add(fillLight);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
-// Group to hold model and base
+// Group to hold model, base, and grid
 const arGroup = new THREE.Group();
 scene.add(arGroup);
+
+// --- GRID HELPER ---
+const gridHelper = new THREE.GridHelper(10, 20, 0x0091ff, 0xcccccc);
+gridHelper.position.y = -0.01; // Slightly below ground level to prevent z-fighting
+arGroup.add(gridHelper);
 
 // WebXR Session handlers
 renderer.xr.addEventListener('sessionstart', () => {
   scene.background = null;
+  gridHelper.visible = false; // Hide grid in AR mode
 });
 renderer.xr.addEventListener('sessionend', () => {
   scene.background = new THREE.Color(0xf4f6f9);
+  gridHelper.visible = true;
 });
 
 // ==========================================
@@ -104,6 +111,9 @@ function createActuatorBase(modelBox) {
   baseMesh.castShadow = true;
 
   arGroup.add(baseMesh);
+
+  // Position the grid directly under the base plate
+  gridHelper.position.y = baseMesh.position.y - (baseThickness / 2) - 0.001;
 }
 
 // ==========================================
