@@ -130,3 +130,15 @@ body {
 #ARButton:hover {
   background: #0052a3 !important;
 }
+
+
+#toggle-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+#light-panel.collapsed #toggle-icon {
+  transform: rotate(180deg);
+}
