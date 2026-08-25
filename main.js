@@ -4,7 +4,16 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import mqtt from 'mqtt';
 
 // ==========================================
-// 1. SCENE & CAMERA SETUP
+// 1. HIVEMQ CLOUD CREDENTIALS
+// ==========================================
+const HIVEMQ_HOST = "0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud";
+const HIVEMQ_PORT = 8884;
+const HIVEMQ_USERNAME = "FestoPLC1";
+const HIVEMQ_PASSWORD = "FestoPLC1";
+const MQTT_TOPIC = "festo/actuators/positions";
+
+// ==========================================
+// 2. SCENE & CAMERA SETUP
 // ==========================================
 const container = document.getElementById('canvas-container');
 const scene = new THREE.Scene();
@@ -29,7 +38,6 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
-// Dynamic Grid Helper
 let gridHelper = new THREE.GridHelper(10, 10, 0x0091ff, 0x444444);
 scene.add(gridHelper);
 
@@ -40,7 +48,7 @@ function updateGridColor(colorHex) {
 }
 
 // ==========================================
-// 2. RETRACTILE PANEL TOGGLE LOGIC
+// 3. UI TOGGLE & CONTROLS BINDING
 // ==========================================
 const statusCard = document.getElementById('status-card');
 const panelToggle = document.getElementById('panel-toggle');
@@ -49,9 +57,6 @@ panelToggle.addEventListener('click', () => {
   statusCard.classList.toggle('collapsed');
 });
 
-// ==========================================
-// 3. DEFAULT LIGHTING SETUP
-// ==========================================
 const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
 scene.add(ambientLight);
 
@@ -75,87 +80,75 @@ function updateKeyLightPosition(angleDeg, heightY) {
   keyLight.position.z = currentLightDistance * Math.sin(rad);
   keyLight.position.y = heightY;
 }
-
-// Initialize key light position based on defaults (165°, Height 0.0)
 updateKeyLightPosition(165, 0.0);
 
-// ==========================================
-// 4. UI LISTENERS & CONTROL BINDINGS
-// ==========================================
-const pickerBg = document.getElementById('color-bg-picker');
-const pickerGrid = document.getElementById('color-grid-picker');
-const pickerLight = document.getElementById('color-light-picker');
-
-pickerBg.addEventListener('input', (e) => {
+document.getElementById('color-bg-picker').addEventListener('input', (e) => {
   scene.background.set(e.target.value);
 });
 
-pickerGrid.addEventListener('input', (e) => {
+document.getElementById('color-grid-picker').addEventListener('input', (e) => {
   updateGridColor(e.target.value);
 });
 
-pickerLight.addEventListener('input', (e) => {
+document.getElementById('color-light-picker').addEventListener('input', (e) => {
   keyLight.color.set(e.target.value);
 });
 
-const sliderKey = document.getElementById('light-key-slider');
-const sliderAmb = document.getElementById('light-amb-slider');
-const sliderFill = document.getElementById('light-fill-slider');
-const sliderPosY = document.getElementById('light-posy-slider');
-const sliderPosXZ = document.getElementById('light-posxz-slider');
-const sliderHemi = document.getElementById('light-hemi-slider');
-
-const valKey = document.getElementById('val-key');
-const valAmb = document.getElementById('val-amb');
-const valFill = document.getElementById('val-fill');
-const valPosY = document.getElementById('val-posy');
-const valPosXZ = document.getElementById('val-posxz');
-const valHemi = document.getElementById('val-hemi');
-
-sliderKey.addEventListener('input', (e) => {
+document.getElementById('light-key-slider').addEventListener('input', (e) => {
   const val = parseFloat(e.target.value);
   keyLight.intensity = val;
-  valKey.textContent = val.toFixed(1);
+  document.getElementById('val-key').textContent = val.toFixed(1);
 });
 
-sliderAmb.addEventListener('input', (e) => {
+document.getElementById('light-amb-slider').addEventListener('input', (e) => {
   const val = parseFloat(e.target.value);
   ambientLight.intensity = val;
-  valAmb.textContent = val.toFixed(1);
+  document.getElementById('val-amb').textContent = val.toFixed(1);
 });
 
-sliderFill.addEventListener('input', (e) => {
+document.getElementById('light-fill-slider').addEventListener('input', (e) => {
   const val = parseFloat(e.target.value);
   fillLight.intensity = val;
-  valFill.textContent = val.toFixed(1);
+  document.getElementById('val-fill').textContent = val.toFixed(1);
 });
 
-sliderPosY.addEventListener('input', (e) => {
+document.getElementById('light-posy-slider').addEventListener('input', (e) => {
   const heightY = parseFloat(e.target.value);
-  valPosY.textContent = heightY.toFixed(1);
-  updateKeyLightPosition(parseFloat(sliderPosXZ.value), heightY);
+  document.getElementById('val-posy').textContent = heightY.toFixed(1);
+  updateKeyLightPosition(parseFloat(document.getElementById('light-posxz-slider').value), heightY);
 });
 
-sliderPosXZ.addEventListener('input', (e) => {
+document.getElementById('light-posxz-slider').addEventListener('input', (e) => {
   const angle = parseFloat(e.target.value);
-  valPosXZ.textContent = `${angle}°`;
-  updateKeyLightPosition(angle, parseFloat(sliderPosY.value));
+  document.getElementById('val-posxz').textContent = `${angle}°`;
+  updateKeyLightPosition(angle, parseFloat(document.getElementById('light-posy-slider').value));
 });
 
-sliderHemi.addEventListener('input', (e) => {
+document.getElementById('light-hemi-slider').addEventListener('input', (e) => {
   const val = parseFloat(e.target.value);
   hemiLight.intensity = val;
-  valHemi.textContent = val.toFixed(1);
+  document.getElementById('val-hemi').textContent = val.toFixed(1);
 });
 
 // ==========================================
-// 5. MODEL LOADING & AUTO-CENTERING
+// 4. MODEL LOADING & SLIDER ANIMATION
 // ==========================================
 let sliderBSMesh = null;
 let sliderTBMesh = null;
 
 const elBS = document.getElementById('pos-bs');
 const elTB = document.getElementById('pos-tb');
+
+function updateSliderPosition(sliderName, val) {
+  if (sliderName === 'SliderBS') {
+    if (elBS) elBS.textContent = `${val.toFixed(2)} mm`;
+    if (sliderBSMesh) sliderBSMesh.position.z = val / 1000.0;
+  }
+  if (sliderName === 'SliderTB') {
+    if (elTB) elTB.textContent = `${val.toFixed(2)} mm`;
+    if (sliderTBMesh) sliderTBMesh.position.z = val / 1000.0;
+  }
+}
 
 const loader = new GLTFLoader();
 const MODEL_PATH = './model/festo_actuators.glb'; 
@@ -166,17 +159,10 @@ loader.load(
     const model = gltf.scene;
     scene.add(model);
 
-    console.log('[3D] Model loaded successfully!');
-
     model.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
-        
-        if (child.material) {
-          child.material.roughness = 0.5;
-          child.material.metalness = 0.2;
-        }
 
         if (child.name.includes('BS') || child.name === 'SliderBS') sliderBSMesh = child;
         if (child.name.includes('TB') || child.name === 'SliderTB') sliderTBMesh = child;
@@ -186,7 +172,6 @@ loader.load(
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
-
     controls.target.copy(center);
     const maxDim = Math.max(size.x, size.y, size.z);
     camera.position.set(center.x + maxDim * 1.5, center.y + maxDim * 1.5, center.z + maxDim * 1.5);
@@ -200,75 +185,63 @@ loader.load(
 );
 
 // ==========================================
-// 6. MQTT WEBSOCKET CONNECTION (FIXED BROKER ENDPOINT)
+// 5. HIVEMQ CLOUD CONNECTION (PORT 8884)
 // ==========================================
-const mqttDot = document.getElementById('mqtt-dot');
-const mqttStatusText = document.getElementById('mqtt-status-text');
+const brokerUrl = `wss://${HIVEMQ_HOST}:${HIVEMQ_PORT}/mqtt`;
 
-// Fixed HiveMQ WebSocket URL (removed trailing /mqtt path)
-const MQTT_BROKER = 'wss://0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud:8843';
-const MQTT_TOPIC = 'festo/actuators/positions';
-
-const client = mqtt.connect(MQTT_BROKER, {
-  clientId: 'festo_web_' + Math.random().toString(16).substring(2, 10),
-  username: 'FestoPLC1',
-  password: 'FestoPLC1',
-  clean: true,
-  connectTimeout: 5000,
-  reconnectPeriod: 2000
+const client = mqtt.connect(brokerUrl, {
+  clientId: 'festo_web_twin_' + Math.random().toString(16).substring(2, 10),
+  username: HIVEMQ_USERNAME,
+  password: HIVEMQ_PASSWORD,
+  clean: true
 });
 
 client.on('connect', () => {
-  console.log('[MQTT] Connected to HiveMQ Cloud via WebSocket!');
-  if (mqttDot) mqttDot.classList.add('connected');
-  if (mqttStatusText) {
-    mqttStatusText.textContent = 'MQTT Connected';
-    mqttStatusText.style.color = '#00ff88';
+  console.log('[MQTT] Connected to HiveMQ Cloud');
+  const statusElem = document.getElementById('status');
+  const dotElem = document.getElementById('dot');
+
+  if (statusElem) {
+    statusElem.innerText = 'Connected';
+    statusElem.style.color = '#00ff88';
   }
+  if (dotElem) {
+    dotElem.style.backgroundColor = '#00ff88';
+    dotElem.style.boxShadow = '0 0 10px #00ff88';
+  }
+
   client.subscribe(MQTT_TOPIC);
 });
 
 client.on('offline', () => {
-  if (mqttDot) mqttDot.classList.remove('connected');
-  if (mqttStatusText) {
-    mqttStatusText.textContent = 'MQTT Offline';
-    mqttStatusText.style.color = '#ff4444';
+  const statusElem = document.getElementById('status');
+  const dotElem = document.getElementById('dot');
+  if (statusElem) {
+    statusElem.innerText = 'Offline';
+    statusElem.style.color = '#ff4444';
+  }
+  if (dotElem) {
+    dotElem.style.backgroundColor = '#ff4444';
+    dotElem.style.boxShadow = '0 0 10px #ff4444';
   }
 });
 
 client.on('error', (err) => {
   console.error('[MQTT Error]', err);
-  if (mqttDot) mqttDot.classList.remove('connected');
-  if (mqttStatusText) {
-    mqttStatusText.textContent = 'MQTT Error';
-    mqttStatusText.style.color = '#ff4444';
-  }
 });
 
 client.on('message', (topic, message) => {
   try {
-    const data = JSON.parse(message.toString());
-
-    if (data.SliderBS !== undefined) {
-      elBS.textContent = `${data.SliderBS.toFixed(2)} mm`;
-      if (sliderBSMesh) {
-        sliderBSMesh.position.z = data.SliderBS / 1000.0;
-      }
-    }
-
-    if (data.SliderTB !== undefined) {
-      elTB.textContent = `${data.SliderTB.toFixed(2)} mm`;
-      if (sliderTBMesh) {
-        sliderTBMesh.position.z = data.SliderTB / 1000.0;
-      }
-    }
+    const payload = JSON.parse(message.toString());
+    if (payload.SliderBS !== undefined) updateSliderPosition('SliderBS', payload.SliderBS);
+    if (payload.SliderTB !== undefined) updateSliderPosition('SliderTB', payload.SliderTB);
   } catch (err) {
-    console.error('[MQTT] Failed to parse payload:', err);
+    console.error('[MQTT] Parse error:', err);
   }
 });
 
 // ==========================================
-// 7. RENDER LOOP
+// 6. RENDER LOOP
 // ==========================================
 function animate() {
   requestAnimationFrame(animate);

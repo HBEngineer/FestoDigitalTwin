@@ -10,7 +10,7 @@
       padding: 0;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #b8b8b8;
+      background-color: #222222;
       color: #ffffff;
     }
 
@@ -78,13 +78,13 @@
       height: 10px;
       border-right: 2px solid #ffffff;
       border-bottom: 2px solid #ffffff;
-      transform: rotate(45deg); /* Down arrow */
+      transform: rotate(45deg);
       transition: transform 0.3s ease;
       margin-bottom: 3px;
     }
 
     #status-card.collapsed .arrow-icon {
-      transform: rotate(-135deg); /* Up arrow when collapsed */
+      transform: rotate(-135deg);
       margin-bottom: -3px;
     }
 
@@ -103,7 +103,6 @@
       overflow: hidden;
     }
 
-    /* Custom scrollbar */
     #panel-content::-webkit-scrollbar {
       width: 4px;
     }
@@ -112,7 +111,7 @@
       border-radius: 4px;
     }
 
-    /* MQTT Connection Status Indicator */
+    /* Connection Status Indicators */
     .connection-wrapper {
       display: flex;
       align-items: center;
@@ -128,14 +127,9 @@
       width: 10px;
       height: 10px;
       border-radius: 50%;
-      background-color: #ff4444; /* Red by default */
+      background-color: #ff4444;
       box-shadow: 0 0 8px #ff4444;
       transition: background-color 0.3s, box-shadow 0.3s;
-    }
-
-    .status-dot.connected {
-      background-color: #00ff88; /* Green when connected */
-      box-shadow: 0 0 8px #00ff88;
     }
 
     .telemetry-row {
@@ -232,7 +226,6 @@
 <body>
 
   <div id="status-card">
-    <!-- Header titled "Control" with Arrow Toggle Button -->
     <div class="card-header" id="panel-toggle">
       <div class="card-title">Control</div>
       <button class="toggle-btn" id="toggle-icon">
@@ -240,15 +233,12 @@
       </button>
     </div>
 
-    <!-- Collapsible Content -->
     <div id="panel-content">
-      <!-- MQTT Connection Status Indicator -->
       <div class="connection-wrapper">
-        <div id="mqtt-dot" class="status-dot"></div>
-        <span id="mqtt-status-text" style="color: #aaaaaa;">MQTT Disconnected</span>
+        <div id="dot" class="status-dot"></div>
+        <span id="status" style="color: #ff4444;">Connecting...</span>
       </div>
 
-      <!-- Telemetry Section -->
       <div class="telemetry-row">
         <span class="telemetry-label">Slider BS:</span>
         <span id="pos-bs" class="telemetry-value">0.00 mm</span>
@@ -259,7 +249,6 @@
         <span id="pos-tb" class="telemetry-value">0.00 mm</span>
       </div>
 
-      <!-- Color Controls Section -->
       <hr class="section-divider" />
       <div class="section-subtitle">Environment & Colors</div>
 
@@ -278,7 +267,6 @@
         <input type="color" id="color-light-picker" value="#ffffff">
       </div>
 
-      <!-- Full Lighting Controls Section -->
       <hr class="section-divider" />
       <div class="section-subtitle">Full Lighting Suite</div>
 
