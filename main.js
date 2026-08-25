@@ -29,12 +29,19 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
-// Visual reference grid so you can verify rendering even if the model fails
-const gridHelper = new THREE.GridHelper(10, 10, 0x0091ff, 0x444444);
+// Dynamic Grid Helper
+let gridHelper = new THREE.GridHelper(10, 10, 0x0091ff, 0x444444);
 scene.add(gridHelper);
 
+// Function to recreate floor grid when primary color changes
+function updateGridColor(colorHex) {
+  scene.remove(gridHelper);
+  gridHelper = new THREE.GridHelper(10, 10, new THREE.Color(colorHex), 0x444444);
+  scene.add(gridHelper);
+}
+
 // ==========================================
-// 2. LIGHTING SETUP
+// 2. FULL LIGHTING SUITE SETUP
 // ==========================================
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
 scene.add(ambientLight);
@@ -42,26 +49,60 @@ scene.add(ambientLight);
 const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
 keyLight.position.set(5, 5, 5);
 keyLight.castShadow = true;
+keyLight.shadow.mapSize.width = 2048;
+keyLight.shadow.mapSize.height = 2048;
 scene.add(keyLight);
 
 const fillLight = new THREE.DirectionalLight(0xffffff, 1.5);
 fillLight.position.set(-5, 5, -5);
 scene.add(fillLight);
 
-// Hemisphere light guarantees no dark undersides
 const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
 scene.add(hemiLight);
 
+// Calculate X and Z positions based on angle in degrees
+let currentLightDistance = 7.07; // Distance from center
+function updateKeyLightPosition(angleDeg, heightY) {
+  const rad = (angleDeg * Math.PI) / 180;
+  keyLight.position.x = currentLightDistance * Math.cos(rad);
+  keyLight.position.z = currentLightDistance * Math.sin(rad);
+  keyLight.position.y = heightY;
+}
+
 // ==========================================
-// 3. UI LIGHT CONTROL LISTENERS
+// 3. UI COLOR & LIGHT LISTENERS
 // ==========================================
+// Color Pickers
+const pickerBg = document.getElementById('color-bg-picker');
+const pickerGrid = document.getElementById('color-grid-picker');
+const pickerLight = document.getElementById('color-light-picker');
+
+pickerBg.addEventListener('input', (e) => {
+  scene.background.set(e.target.value);
+});
+
+pickerGrid.addEventListener('input', (e) => {
+  updateGridColor(e.target.value);
+});
+
+pickerLight.addEventListener('input', (e) => {
+  keyLight.color.set(e.target.value);
+});
+
+// Light Sliders & Value Displays
 const sliderKey = document.getElementById('light-key-slider');
 const sliderAmb = document.getElementById('light-amb-slider');
-const sliderPos = document.getElementById('light-pos-slider');
+const sliderFill = document.getElementById('light-fill-slider');
+const sliderPosY = document.getElementById('light-posy-slider');
+const sliderPosXZ = document.getElementById('light-posxz-slider');
+const sliderHemi = document.getElementById('light-hemi-slider');
 
 const valKey = document.getElementById('val-key');
 const valAmb = document.getElementById('val-amb');
-const valPos = document.getElementById('val-pos');
+const valFill = document.getElementById('val-fill');
+const valPosY = document.getElementById('val-posy');
+const valPosXZ = document.getElementById('val-posxz');
+const valHemi = document.getElementById('val-hemi');
 
 sliderKey.addEventListener('input', (e) => {
   const val = parseFloat(e.target.value);
@@ -75,10 +116,28 @@ sliderAmb.addEventListener('input', (e) => {
   valAmb.textContent = val.toFixed(1);
 });
 
-sliderPos.addEventListener('input', (e) => {
+sliderFill.addEventListener('input', (e) => {
   const val = parseFloat(e.target.value);
-  keyLight.position.y = val;
-  valPos.textContent = val.toFixed(1);
+  fillLight.intensity = val;
+  valFill.textContent = val.toFixed(1);
+});
+
+sliderPosY.addEventListener('input', (e) => {
+  const heightY = parseFloat(e.target.value);
+  valPosY.textContent = heightY.toFixed(1);
+  updateKeyLightPosition(parseFloat(sliderPosXZ.value), heightY);
+});
+
+sliderPosXZ.addEventListener('input', (e) => {
+  const angle = parseFloat(e.target.value);
+  valPosXZ.textContent = `${angle}°`;
+  updateKeyLightPosition(angle, parseFloat(sliderPosY.value));
+});
+
+sliderHemi.addEventListener('input', (e) => {
+  const val = parseFloat(e.target.value);
+  hemiLight.intensity = val;
+  valHemi.textContent = val.toFixed(1);
 });
 
 // ==========================================
@@ -90,10 +149,7 @@ let sliderTBMesh = null;
 const elBS = document.getElementById('pos-bs');
 const elTB = document.getElementById('pos-tb');
 
-// TRY LOADING MODEL - Check console if path fails
 const loader = new GLTFLoader();
-
-// Updated relative path: check your exact folder name ('model' vs 'models')
 const MODEL_PATH = './model/festo_actuators.glb'; 
 
 loader.load(
@@ -102,28 +158,24 @@ loader.load(
     const model = gltf.scene;
     scene.add(model);
 
-    console.log('[3D] Model loaded successfully! Inspecting nodes...');
+    console.log('[3D] Model loaded successfully!');
 
     model.traverse((child) => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
         
-        // Prevent pure black mesh rendering if environment map is missing
         if (child.material) {
           child.material.roughness = 0.5;
           child.material.metalness = 0.2;
         }
-
-        // Print node names in developer console to confirm exact target mesh names
-        console.log('Found Mesh Node:', child.name);
 
         if (child.name.includes('BS') || child.name === 'SliderBS') sliderBSMesh = child;
         if (child.name.includes('TB') || child.name === 'SliderTB') sliderTBMesh = child;
       }
     });
 
-    // Automatically focus camera on the loaded model
+    // Auto-center camera to bounding box
     const box = new THREE.Box3().setFromObject(model);
     const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
@@ -133,16 +185,10 @@ loader.load(
     camera.position.set(center.x + maxDim * 1.5, center.y + maxDim * 1.5, center.z + maxDim * 1.5);
     camera.lookAt(center);
     controls.update();
-
-    console.log(`[3D] Camera auto-centered to bbox size: ${maxDim.toFixed(2)}`);
   },
-  (xhr) => {
-    if (xhr.lengthComputable) {
-      console.log(`[3D] Loading progress: ${((xhr.loaded / xhr.total) * 100).toFixed(0)}%`);
-    }
-  },
+  undefined,
   (error) => {
-    console.error(`[3D Error] Failed to load model at path "${MODEL_PATH}". Check file path/case sensitivity!`, error);
+    console.error(`[3D Error] Failed to load model at "${MODEL_PATH}"`, error);
   }
 );
 

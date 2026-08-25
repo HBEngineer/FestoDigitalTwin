@@ -10,7 +10,7 @@
       padding: 0;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #1a1a1a;
+      background-color: #222222;
       color: #ffffff;
     }
 
@@ -20,26 +20,38 @@
       display: block;
     }
 
-    /* UI Overlay Card */
+    /* Scrollable UI Overlay Card */
     #status-card {
       position: absolute;
       top: 20px;
       left: 20px;
-      width: 280px;
-      background: rgba(30, 30, 30, 0.85);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      width: 290px;
+      max-height: calc(100vh - 60px);
+      overflow-y: auto;
+      background: rgba(30, 30, 30, 0.88);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
       padding: 16px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
       z-index: 10;
     }
 
+    /* Custom scrollbar for control panel */
+    #status-card::-webkit-scrollbar {
+      width: 4px;
+    }
+    #status-card::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+
     .card-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       color: #0091ff;
+      letter-spacing: 0.5px;
     }
 
     .telemetry-row {
@@ -60,7 +72,6 @@
       color: #00ff88;
     }
 
-    /* Controls Styling */
     .section-divider {
       margin: 14px 0 10px 0;
       border: 0;
@@ -74,7 +85,7 @@
     .control-header {
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
+      font-size: 11px;
       color: #cccccc;
       margin-bottom: 4px;
     }
@@ -84,14 +95,39 @@
       color: #0091ff;
     }
 
+    .color-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: #cccccc;
+    }
+
     input[type="range"] {
       width: 100%;
       accent-color: #0091ff;
       cursor: pointer;
     }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: none;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      background: none;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    input[type="color"]::-webkit-color-swatch {
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 6px;
+    }
   </style>
 
-  <!-- Import Three.js and MQTT via ES Modules importmap -->
   <script type="importmap">
     {
       "imports": {
@@ -105,6 +141,7 @@
 <body>
 
   <div id="status-card">
+    <!-- Telemetry Section -->
     <div class="card-title">Festo ELGD Telemetry</div>
     
     <div class="telemetry-row">
@@ -117,9 +154,28 @@
       <span id="pos-tb" class="telemetry-value">0.00 mm</span>
     </div>
 
+    <!-- Color Controls Section -->
     <hr class="section-divider" />
-    
-    <div class="card-title" style="font-size: 14px; margin-bottom: 8px;">Lighting Settings</div>
+    <div class="card-title">Environment & Colors</div>
+
+    <div class="color-row">
+      <span>Background Color</span>
+      <input type="color" id="color-bg-picker" value="#222222">
+    </div>
+
+    <div class="color-row">
+      <span>Floor Grid Lines</span>
+      <input type="color" id="color-grid-picker" value="#0091ff">
+    </div>
+
+    <div class="color-row">
+      <span>Key Light Color</span>
+      <input type="color" id="color-light-picker" value="#ffffff">
+    </div>
+
+    <!-- Full Lighting Controls Section -->
+    <hr class="section-divider" />
+    <div class="card-title">Full Lighting Suite</div>
 
     <div class="control-group">
       <div class="control-header">
@@ -132,17 +188,41 @@
     <div class="control-group">
       <div class="control-header">
         <span>Ambient Intensity</span>
-        <span id="val-amb" class="val-display">0.8</span>
+        <span id="val-amb" class="val-display">1.5</span>
       </div>
-      <input type="range" id="light-amb-slider" min="0" max="3" step="0.1" value="0.8">
+      <input type="range" id="light-amb-slider" min="0" max="4" step="0.1" value="1.5">
     </div>
 
     <div class="control-group">
       <div class="control-header">
-        <span>Light Elevation (Y)</span>
-        <span id="val-pos" class="val-display">-3.5</span>
+        <span>Fill Light Intensity</span>
+        <span id="val-fill" class="val-display">1.5</span>
       </div>
-      <input type="range" id="light-pos-slider" min="-10" max="10" step="0.5" value="-3.5">
+      <input type="range" id="light-fill-slider" min="0" max="5" step="0.1" value="1.5">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <span>Light Elevation (Height Y)</span>
+        <span id="val-posy" class="val-display">5.0</span>
+      </div>
+      <input type="range" id="light-posy-slider" min="-10" max="15" step="0.5" value="5.0">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <span>Light Orbit Angle (X/Z)</span>
+        <span id="val-posxz" class="val-display">45°</span>
+      </div>
+      <input type="range" id="light-posxz-slider" min="0" max="360" step="5" value="45">
+    </div>
+
+    <div class="control-group">
+      <div class="control-header">
+        <span>Hemisphere Light (Sky/Ground)</span>
+        <span id="val-hemi" class="val-display">1.0</span>
+      </div>
+      <input type="range" id="light-hemi-slider" min="0" max="3" step="0.1" value="1.0">
     </div>
   </div>
 
