@@ -43,30 +43,146 @@
   </span>
 </div>
     <div id="light-panel-body">
-      <div class="control-group">
-        <label for="ctrl-hemi">Hemi Light: <span id="lbl-hemi">2.8</span></label>
-        <input type="range" id="ctrl-hemi" min="0" max="10" step="0.1" value="2.8" />
+
+      <!-- Hemisphere Light -->
+      <div class="control-section">
+        <div class="control-section-title">Hemisphere Light</div>
+        <div class="control-group">
+          <label for="ctrl-hemi">Intensity: <span id="lbl-hemi">2.8</span></label>
+          <input type="range" id="ctrl-hemi" min="0" max="10" step="0.1" value="2.8" />
+        </div>
+        <div class="control-group position-group">
+          <label>Position</label>
+          <div class="xyz-row">
+            <div class="xyz-field">
+              <span class="xyz-label">X</span>
+              <input type="range" id="ctrl-hemi-x" min="-20" max="20" step="0.5" value="0" />
+              <span class="xyz-value" id="lbl-hemi-x">0</span>
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-label">Y</span>
+              <input type="range" id="ctrl-hemi-y" min="-20" max="20" step="0.5" value="20" />
+              <span class="xyz-value" id="lbl-hemi-y">20</span>
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-label">Z</span>
+              <input type="range" id="ctrl-hemi-z" min="-20" max="20" step="0.5" value="0" />
+              <span class="xyz-value" id="lbl-hemi-z">0</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="control-group">
-        <label for="ctrl-key">Key Light: <span id="lbl-key">4.2</span></label>
-        <input type="range" id="ctrl-key" min="0" max="10" step="0.1" value="4.2" />
+
+      <hr class="section-divider" />
+
+      <!-- Key Light -->
+      <div class="control-section">
+        <div class="control-section-title">Key Light</div>
+        <div class="control-group">
+          <label for="ctrl-key">Intensity: <span id="lbl-key">4.2</span></label>
+          <input type="range" id="ctrl-key" min="0" max="10" step="0.1" value="4.2" />
+        </div>
+        <div class="control-group">
+          <label for="ctrl-key-color">Color</label>
+          <input type="color" id="ctrl-key-color" value="#ffffff" />
+        </div>
+        <div class="control-group position-group">
+          <label>Position</label>
+          <div class="xyz-row">
+            <div class="xyz-field">
+              <span class="xyz-label">X</span>
+              <input type="range" id="ctrl-key-x" min="-20" max="20" step="0.1" value="-3" />
+              <span class="xyz-value" id="lbl-key-x">-3</span>
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-label">Y</span>
+              <input type="range" id="ctrl-key-y" min="-20" max="20" step="0.1" value="-3.5" />
+              <span class="xyz-value" id="lbl-key-y">-3.5</span>
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-label">Z</span>
+              <input type="range" id="ctrl-key-z" min="-20" max="20" step="0.1" value="-0.5" />
+              <span class="xyz-value" id="lbl-key-z">-0.5</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="control-group">
-        <label for="ctrl-fill">Fill Light: <span id="lbl-fill">4.0</span></label>
-        <input type="range" id="ctrl-fill" min="0" max="10" step="0.1" value="4.0" />
+
+      <hr class="section-divider" />
+
+      <!-- Fill Light -->
+      <div class="control-section">
+        <div class="control-section-title">Fill Light</div>
+        <div class="control-group">
+          <label for="ctrl-fill">Intensity: <span id="lbl-fill">4.0</span></label>
+          <input type="range" id="ctrl-fill" min="0" max="10" step="0.1" value="4.0" />
+        </div>
+        <div class="control-group">
+          <label for="ctrl-fill-color">Color</label>
+          <input type="color" id="ctrl-fill-color" value="#ffffff" />
+        </div>
+        <div class="control-group position-group">
+          <label>Position</label>
+          <div class="xyz-row">
+            <div class="xyz-field">
+              <span class="xyz-label">X</span>
+              <input type="range" id="ctrl-fill-x" min="-20" max="20" step="0.1" value="-5" />
+              <span class="xyz-value" id="lbl-fill-x">-5</span>
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-label">Y</span>
+              <input type="range" id="ctrl-fill-y" min="-20" max="20" step="0.1" value="5" />
+              <span class="xyz-value" id="lbl-fill-y">5</span>
+            </div>
+            <div class="xyz-field">
+              <span class="xyz-label">Z</span>
+              <input type="range" id="ctrl-fill-z" min="-20" max="20" step="0.1" value="-5" />
+              <span class="xyz-value" id="lbl-fill-z">-5</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="control-group">
-        <label for="ctrl-ambient">Ambient Light: <span id="lbl-ambient">0.8</span></label>
-        <input type="range" id="ctrl-ambient" min="0" max="5" step="0.1" value="0.8" />
+
+      <hr class="section-divider" />
+
+      <!-- Ambient Light -->
+      <div class="control-section">
+        <div class="control-section-title">Ambient Light</div>
+        <div class="control-group">
+          <label for="ctrl-ambient">Intensity: <span id="lbl-ambient">0.8</span></label>
+          <input type="range" id="ctrl-ambient" min="0" max="5" step="0.1" value="0.8" />
+        </div>
+        <div class="control-group">
+          <label for="ctrl-ambient-color">Color</label>
+          <input type="color" id="ctrl-ambient-color" value="#ffffff" />
+        </div>
       </div>
-      <div class="control-group">
-        <label for="ctrl-key-color">Key Light Color</label>
-        <input type="color" id="ctrl-key-color" value="#ffffff" />
+
+      <hr class="section-divider" />
+
+      <!-- Scene Background -->
+      <div class="control-section">
+        <div class="control-section-title">Scene</div>
+        <div class="control-group">
+          <label for="ctrl-bg-color">Background Color</label>
+          <input type="color" id="ctrl-bg-color" value="#f4f6f9" />
+        </div>
       </div>
-      <div class="control-group">
-        <label for="ctrl-bg-color">Background Color</label>
-        <input type="color" id="ctrl-bg-color" value="#f4f6f9" />
+
+      <hr class="section-divider" />
+
+      <!-- Save / Reset Controls -->
+      <div class="control-section">
+        <div class="button-row">
+          <button id="btn-save-default" class="btn btn-primary">Save as Default</button>
+        </div>
+        <div class="button-row">
+          <button id="btn-load-default" class="btn btn-secondary">Reset to Saved Default</button>
+          <button id="btn-load-factory" class="btn btn-secondary">Reset to Factory</button>
+        </div>
+        <div id="save-status" class="save-status"></div>
       </div>
+
     </div>
   </div>
 

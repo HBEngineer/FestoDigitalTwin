@@ -91,32 +91,66 @@ panelHeader.addEventListener('click', () => {
   lightPanel.classList.toggle('collapsed');
 });
 
-document.getElementById('ctrl-hemi').addEventListener('input', (e) => {
-  const val = parseFloat(e.target.value);
-  hemiLight.intensity = val;
-  document.getElementById('lbl-hemi').innerText = val.toFixed(1);
+const LIGHTING_STORAGE_KEY = 'festoDigitalTwin.lightingDefaults';
+
+// The values the scene was originally authored with. "Reset to Factory"
+// always returns to this configuration, regardless of what's been saved.
+const FACTORY_LIGHTING_CONFIG = {
+  hemi: { intensity: 2.8, position: { x: 0, y: 20, z: 0 } },
+  key: { intensity: 4.2, color: '#ffffff', position: { x: -3, y: -3.5, z: -0.5 } },
+  fill: { intensity: 4.0, color: '#ffffff', position: { x: -5, y: 5, z: -5 } },
+  ambient: { intensity: 0.8, color: '#ffffff' },
+  background: '#f4f6f9'
+};
+
+// Maps each slider/color input id to a (light, property) setter, and each
+// value to the label element that displays it. Keeping this table-driven
+// means adding another controllable light later only needs an entry here
+// plus matching markup in index.html.
+const lightControlBindings = [
+  { id: 'ctrl-hemi', labelId: 'lbl-hemi', decimals: 1, apply: (v) => { hemiLight.intensity = v; } },
+  { id: 'ctrl-hemi-x', labelId: 'lbl-hemi-x', decimals: 1, apply: (v) => { hemiLight.position.x = v; } },
+  { id: 'ctrl-hemi-y', labelId: 'lbl-hemi-y', decimals: 1, apply: (v) => { hemiLight.position.y = v; } },
+  { id: 'ctrl-hemi-z', labelId: 'lbl-hemi-z', decimals: 1, apply: (v) => { hemiLight.position.z = v; } },
+
+  { id: 'ctrl-key', labelId: 'lbl-key', decimals: 1, apply: (v) => { keyLight.intensity = v; } },
+  { id: 'ctrl-key-x', labelId: 'lbl-key-x', decimals: 1, apply: (v) => { keyLight.position.x = v; } },
+  { id: 'ctrl-key-y', labelId: 'lbl-key-y', decimals: 1, apply: (v) => { keyLight.position.y = v; } },
+  { id: 'ctrl-key-z', labelId: 'lbl-key-z', decimals: 1, apply: (v) => { keyLight.position.z = v; } },
+
+  { id: 'ctrl-fill', labelId: 'lbl-fill', decimals: 1, apply: (v) => { fillLight.intensity = v; } },
+  { id: 'ctrl-fill-x', labelId: 'lbl-fill-x', decimals: 1, apply: (v) => { fillLight.position.x = v; } },
+  { id: 'ctrl-fill-y', labelId: 'lbl-fill-y', decimals: 1, apply: (v) => { fillLight.position.y = v; } },
+  { id: 'ctrl-fill-z', labelId: 'lbl-fill-z', decimals: 1, apply: (v) => { fillLight.position.z = v; } },
+
+  { id: 'ctrl-ambient', labelId: 'lbl-ambient', decimals: 1, apply: (v) => { ambientLight.intensity = v; } }
+];
+
+lightControlBindings.forEach(({ id, labelId, decimals, apply }) => {
+  const input = document.getElementById(id);
+  if (!input) return;
+  input.addEventListener('input', (e) => {
+    const val = parseFloat(e.target.value);
+    apply(val);
+    if (labelId) {
+      const label = document.getElementById(labelId);
+      if (label) label.innerText = val.toFixed(decimals);
+    }
+  });
 });
 
-document.getElementById('ctrl-key').addEventListener('input', (e) => {
-  const val = parseFloat(e.target.value);
-  keyLight.intensity = val;
-  document.getElementById('lbl-key').innerText = val.toFixed(1);
-});
-
-document.getElementById('ctrl-fill').addEventListener('input', (e) => {
-  const val = parseFloat(e.target.value);
-  fillLight.intensity = val;
-  document.getElementById('lbl-fill').innerText = val.toFixed(1);
-});
-
-document.getElementById('ctrl-ambient').addEventListener('input', (e) => {
-  const val = parseFloat(e.target.value);
-  ambientLight.intensity = val;
-  document.getElementById('lbl-ambient').innerText = val.toFixed(1);
-});
-
+// Color pickers (separate from the table above since they read a hex string,
+// not a float, and don't drive a numeric label).
 document.getElementById('ctrl-key-color').addEventListener('input', (e) => {
   keyLight.color.set(e.target.value);
+});
+
+document.getElementById('ctrl-fill-color').addEventListener('input', (e) => {
+  fillLight.color.set(e.target.value);
+});
+
+document.getElementById('ctrl-ambient-color').addEventListener('input', (e) => {
+  ambientLight.color.set(e.target.value);
 });
 
 document.getElementById('ctrl-bg-color').addEventListener('input', (e) => {
@@ -124,6 +158,147 @@ document.getElementById('ctrl-bg-color').addEventListener('input', (e) => {
     scene.background.set(e.target.value);
   }
 });
+
+// --- Reading / applying a full lighting configuration ---
+
+function readCurrentLightingConfig() {
+  return {
+    hemi: {
+      intensity: hemiLight.intensity,
+      position: { x: hemiLight.position.x, y: hemiLight.position.y, z: hemiLight.position.z }
+    },
+    key: {
+      intensity: keyLight.intensity,
+      color: '#' + keyLight.color.getHexString(),
+      position: { x: keyLight.position.x, y: keyLight.position.y, z: keyLight.position.z }
+    },
+    fill: {
+      intensity: fillLight.intensity,
+      color: '#' + fillLight.color.getHexString(),
+      position: { x: fillLight.position.x, y: fillLight.position.y, z: fillLight.position.z }
+    },
+    ambient: {
+      intensity: ambientLight.intensity,
+      color: '#' + ambientLight.color.getHexString()
+    },
+    background: '#' + scene.background.getHexString()
+  };
+}
+
+function applyLightingConfig(config) {
+  hemiLight.intensity = config.hemi.intensity;
+  hemiLight.position.set(config.hemi.position.x, config.hemi.position.y, config.hemi.position.z);
+
+  keyLight.intensity = config.key.intensity;
+  keyLight.color.set(config.key.color);
+  keyLight.position.set(config.key.position.x, config.key.position.y, config.key.position.z);
+
+  fillLight.intensity = config.fill.intensity;
+  fillLight.color.set(config.fill.color);
+  fillLight.position.set(config.fill.position.x, config.fill.position.y, config.fill.position.z);
+
+  ambientLight.intensity = config.ambient.intensity;
+  ambientLight.color.set(config.ambient.color);
+
+  if (!renderer.xr.isPresenting) {
+    scene.background.set(config.background);
+  }
+
+  syncLightingUI(config);
+}
+
+// Pushes a config's values into every slider/color input and label so the
+// panel reflects whatever was just applied (on load, or after a reset).
+function syncLightingUI(config) {
+  const setRange = (id, labelId, value, decimals) => {
+    const input = document.getElementById(id);
+    if (input) input.value = value;
+    const label = document.getElementById(labelId);
+    if (label) label.innerText = value.toFixed(decimals);
+  };
+  const setColor = (id, value) => {
+    const input = document.getElementById(id);
+    if (input) input.value = value;
+  };
+
+  setRange('ctrl-hemi', 'lbl-hemi', config.hemi.intensity, 1);
+  setRange('ctrl-hemi-x', 'lbl-hemi-x', config.hemi.position.x, 1);
+  setRange('ctrl-hemi-y', 'lbl-hemi-y', config.hemi.position.y, 1);
+  setRange('ctrl-hemi-z', 'lbl-hemi-z', config.hemi.position.z, 1);
+
+  setRange('ctrl-key', 'lbl-key', config.key.intensity, 1);
+  setColor('ctrl-key-color', config.key.color);
+  setRange('ctrl-key-x', 'lbl-key-x', config.key.position.x, 1);
+  setRange('ctrl-key-y', 'lbl-key-y', config.key.position.y, 1);
+  setRange('ctrl-key-z', 'lbl-key-z', config.key.position.z, 1);
+
+  setRange('ctrl-fill', 'lbl-fill', config.fill.intensity, 1);
+  setColor('ctrl-fill-color', config.fill.color);
+  setRange('ctrl-fill-x', 'lbl-fill-x', config.fill.position.x, 1);
+  setRange('ctrl-fill-y', 'lbl-fill-y', config.fill.position.y, 1);
+  setRange('ctrl-fill-z', 'lbl-fill-z', config.fill.position.z, 1);
+
+  setRange('ctrl-ambient', 'lbl-ambient', config.ambient.intensity, 1);
+  setColor('ctrl-ambient-color', config.ambient.color);
+
+  setColor('ctrl-bg-color', config.background);
+}
+
+function showSaveStatus(message) {
+  const statusElem = document.getElementById('save-status');
+  if (!statusElem) return;
+  statusElem.innerText = message;
+  clearTimeout(showSaveStatus._timer);
+  showSaveStatus._timer = setTimeout(() => { statusElem.innerText = ''; }, 2500);
+}
+
+// --- Save / Reset buttons ---
+
+document.getElementById('btn-save-default').addEventListener('click', () => {
+  const config = readCurrentLightingConfig();
+  try {
+    localStorage.setItem(LIGHTING_STORAGE_KEY, JSON.stringify(config));
+    showSaveStatus('Saved as default \u2713');
+  } catch (err) {
+    console.error('[LIGHTING] Failed to save default config:', err);
+    showSaveStatus('Save failed');
+  }
+});
+
+document.getElementById('btn-load-default').addEventListener('click', () => {
+  const saved = localStorage.getItem(LIGHTING_STORAGE_KEY);
+  if (!saved) {
+    showSaveStatus('No saved default yet');
+    return;
+  }
+  try {
+    applyLightingConfig(JSON.parse(saved));
+    showSaveStatus('Default loaded');
+  } catch (err) {
+    console.error('[LIGHTING] Failed to load saved config:', err);
+    showSaveStatus('Load failed');
+  }
+});
+
+document.getElementById('btn-load-factory').addEventListener('click', () => {
+  applyLightingConfig(FACTORY_LIGHTING_CONFIG);
+  showSaveStatus('Factory defaults restored');
+});
+
+// On startup, use a saved default if one exists; otherwise the scene keeps
+// the factory values it was already constructed with above.
+(function initLightingFromSavedDefault() {
+  const saved = localStorage.getItem(LIGHTING_STORAGE_KEY);
+  if (saved) {
+    try {
+      applyLightingConfig(JSON.parse(saved));
+      return;
+    } catch (err) {
+      console.warn('[LIGHTING] Saved config was invalid, using factory defaults:', err);
+    }
+  }
+  syncLightingUI(FACTORY_LIGHTING_CONFIG);
+})();
 
 // ==========================================
 // 4. LOAD GLB MODEL

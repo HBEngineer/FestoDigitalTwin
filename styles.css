@@ -128,7 +128,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
   transition: max-height 0.3s ease, opacity 0.3s ease;
   opacity: 1;
 }
@@ -176,4 +177,99 @@ body {
   height: 28px;
   cursor: pointer;
   border-radius: 4px;
+}
+
+.control-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #0066cc;
+}
+
+.section-divider {
+  border: none;
+  border-top: 1px solid #e0e0e0;
+  margin: 2px 0;
+}
+
+.position-group label {
+  justify-content: flex-start;
+}
+
+.xyz-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.xyz-field {
+  display: grid;
+  grid-template-columns: 14px 1fr 40px;
+  align-items: center;
+  gap: 6px;
+}
+
+.xyz-label {
+  font-weight: 600;
+  color: #666;
+  font-size: 11px;
+}
+
+.xyz-value {
+  font-family: monospace;
+  font-size: 11px;
+  text-align: right;
+  color: #444;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  flex: 1;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: #0066cc;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: #0052a3;
+}
+
+.btn-secondary {
+  background: #eef2f7;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background: #dfe6ee;
+}
+
+.save-status {
+  font-size: 11px;
+  color: #2e7d32;
+  min-height: 14px;
+  text-align: center;
 }
