@@ -45,20 +45,20 @@ const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // --- LIGHTING SETUP ---
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.8);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.4);
 hemiLight.position.set(0, 20, 0);
 scene.add(hemiLight);
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 4.2);
+const keyLight = new THREE.DirectionalLight(0xffffff, 4.0);
 keyLight.position.set(-3, -3.5, -0.5);
 keyLight.castShadow = true;
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 4.0);
+const fillLight = new THREE.DirectionalLight(0xffffff, 2.4);
 fillLight.position.set(-5, 5, -5);
 scene.add(fillLight);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
 // Group to hold model and grid
@@ -96,10 +96,10 @@ const LIGHTING_STORAGE_KEY = 'festoDigitalTwin.lightingDefaults';
 // The values the scene was originally authored with. "Reset to Factory"
 // always returns to this configuration, regardless of what's been saved.
 const FACTORY_LIGHTING_CONFIG = {
-  hemi: { intensity: 2.8, position: { x: 0, y: 20, z: 0 } },
-  key: { intensity: 4.2, color: '#ffffff', position: { x: -3, y: -3.5, z: -0.5 } },
-  fill: { intensity: 4.0, color: '#ffffff', position: { x: -5, y: 5, z: -5 } },
-  ambient: { intensity: 0.8, color: '#ffffff' },
+  hemi: { intensity: 1.4, position: { x: 0, y: 20, z: 0 } },
+  key: { intensity: 4.0, color: '#ffffff', position: { x: -3, y: -3.5, z: -0.5 } },
+  fill: { intensity: 2.4, color: '#ffffff', position: { x: -5, y: 5, z: -5 } },
+  ambient: { intensity: 0.7, color: '#ffffff' },
   background: '#f4f6f9'
 };
 
