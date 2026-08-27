@@ -12,7 +12,8 @@ body {
 
 #canvas-container {
   width: 100vw;
-  height: 100vh;
+  height: 100vh; /* fallback for browsers without dvh support */
+  height: 100dvh; /* accounts for mobile browser toolbars showing/hiding */
   display: block;
 }
 
@@ -273,3 +274,34 @@ body {
   min-height: 14px;
   text-align: center;
 }
+
+/* Mobile: shrink and constrain the corner panels so they don't overwhelm
+   a narrow screen or overlap each other. */
+@media (max-width: 600px) {
+  #status-card {
+    top: 12px;
+    left: 12px;
+    min-width: 0;
+    max-width: calc(50vw - 18px);
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  #light-panel {
+    top: 12px;
+    right: 12px;
+    width: calc(50vw - 18px);
+    max-width: 240px;
+  }
+
+  #light-panel-header {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  #light-panel-body {
+    padding: 12px;
+    max-height: 70vh;
+  }
+}
+
