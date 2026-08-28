@@ -5,7 +5,6 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { ARButton } from 'three/addons/webxr/ARButton.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
 // ==========================================
 // 1. HIVEMQ CLOUD CREDENTIALS
@@ -22,7 +21,7 @@ const MQTT_TOPIC = "festo/actuators/positions";
 const container = document.getElementById('canvas-container');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x969696);
+scene.background = new THREE.Color(0xf4f6f9);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(-0.32, 0.83, 0.97);
@@ -36,18 +35,6 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
-
-// --- ENVIRONMENT LIGHTING ---
-// Many CAD-exported glTF materials use a metallic PBR workflow, where a
-// surface's color comes mostly from reflecting its surroundings rather
-// than from diffuse lighting. With no environment map, metallic parts
-// (e.g. the blue actuator housings) mainly show white specular highlights
-// from the scene lights and read as washed-out, regardless of light
-// position. This generates a neutral synthetic "room" environment - no
-// external HDR file needed - so metallic surfaces have something
-// believable to reflect.
-const pmremGenerator = new THREE.PMREMGenerator(renderer);
-scene.environment = pmremGenerator.fromScene(new RoomEnvironment(), 0.04).texture;
 
 // Enable WebXR
 renderer.xr.enabled = true;
