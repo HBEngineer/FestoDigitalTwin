@@ -125,11 +125,11 @@ const LIGHTING_STORAGE_KEY = 'festoDigitalTwin.lightingDefaults';
 // The values the scene was originally authored with. "Reset to Factory"
 // always returns to this configuration, regardless of what's been saved.
 const FACTORY_LIGHTING_CONFIG = {
-  hemi: { intensity: 1.4, position: { x: 0, y: 20, z: 0 } },
-  key: { intensity: 4.0, color: '#ffffff', position: { x: -3, y: -3.5, z: -0.5 } },
-  fill: { intensity: 2.4, color: '#ffffff', position: { x: -5, y: 5, z: -5 } },
-  ambient: { intensity: 0.7, color: '#ffffff' },
-  background: '#2b2d31'
+  hemi: { intensity: 1, position: { x: 20, y: 20, z: 20 } },
+  key: { intensity: 0.0, color: '#858585', position: { x: 20, y: 20, z: 20 } },
+  fill: { intensity: 7.3, color: '#2e2e2e', position: { x: 12, y: 10, z: 1 } },
+  ambient: { intensity: 2, color: '#616161' },
+  background: '#d9d9d9'
 };
 
 // Maps each slider/color input id to a (light, property) setter, and each
