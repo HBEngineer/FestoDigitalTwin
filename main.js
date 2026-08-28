@@ -21,7 +21,7 @@ const MQTT_TOPIC = "festo/actuators/positions";
 const container = document.getElementById('canvas-container');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf4f6f9);
+scene.background = new THREE.Color(0x2b2d31);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(-0.32, 0.83, 0.97);
@@ -95,7 +95,7 @@ const arGroup = new THREE.Group();
 scene.add(arGroup);
 
 // --- GRID HELPER ---
-const gridHelper = new THREE.GridHelper(10, 20, 0x0091ff, 0xcccccc);
+const gridHelper = new THREE.GridHelper(10, 20, 0x004c99, 0x666666);
 gridHelper.position.y = -0.01;
 arGroup.add(gridHelper);
 
@@ -129,7 +129,7 @@ const FACTORY_LIGHTING_CONFIG = {
   key: { intensity: 4.0, color: '#ffffff', position: { x: -3, y: -3.5, z: -0.5 } },
   fill: { intensity: 2.4, color: '#ffffff', position: { x: -5, y: 5, z: -5 } },
   ambient: { intensity: 0.7, color: '#ffffff' },
-  background: '#f4f6f9'
+  background: '#2b2d31'
 };
 
 // Maps each slider/color input id to a (light, property) setter, and each
