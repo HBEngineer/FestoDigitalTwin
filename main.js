@@ -1,4 +1,12 @@
 // ==========================================
+// 0. MODULE IMPORTS (three.js core + addons)
+// ==========================================
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { ARButton } from 'three/addons/webxr/ARButton.js';
+
+// ==========================================
 // 1. HIVEMQ CLOUD CREDENTIALS
 // ==========================================
 const HIVEMQ_HOST = "0bd403ef4ed0449a81d8e2de7a705113.s1.eu.hivemq.cloud";
@@ -13,7 +21,7 @@ const MQTT_TOPIC = "festo/actuators/positions";
 const container = document.getElementById('canvas-container');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x969696);   // (0xf4f6f9);
+scene.background = new THREE.Color(0xf4f6f9);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(-0.32, 0.83, 0.97);
@@ -33,15 +41,11 @@ renderer.xr.enabled = true;
 
 container.appendChild(renderer.domElement);
 
-// Append AR Button safely
-const arBtn = window.ARButton || (typeof THREE !== 'undefined' && THREE.ARButton);
-if (arBtn) {
-  document.body.appendChild(arBtn.createButton(renderer, { requiredFeatures: ['hit-test'] }));
-} else {
-  console.warn('[AR] ARButton not found on window or THREE context.');
-}
+// Append AR Button (WebXR — Android/Chrome only; iOS uses the separate
+// Quick Look button in index.html instead, since Safari has no WebXR AR)
+document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
 
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // --- LIGHTING SETUP ---
@@ -61,12 +65,18 @@ scene.add(fillLight);
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
+// Camera light (headlight) - follows the viewer so the side of the model
+// facing the camera is always lit, regardless of orbit angle.
+const cameraLight = new THREE.PointLight(0xffffff, 1.5, 0, 1);
+camera.add(cameraLight);
+scene.add(camera); // camera must be in the scene graph for its child light to render
+
 // Group to hold model and grid
 const arGroup = new THREE.Group();
 scene.add(arGroup);
 
 // --- GRID HELPER ---
-const gridHelper = new THREE.GridHelper(10, 20, 0x002847, 0x969696);   //Hugo (10, 20, 0x0091ff, 0xcccccc)
+const gridHelper = new THREE.GridHelper(10, 20, 0x0091ff, 0xcccccc);
 gridHelper.position.y = -0.01;
 arGroup.add(gridHelper);
 
@@ -315,7 +325,7 @@ let targetTB = 0;
 const SCALE_FACTOR = 1;
 const LERP_FACTOR = 0.08;
 
-const loader = new THREE.GLTFLoader();
+const loader = new GLTFLoader();
 loader.load(
   './model/festo_actuators.glb',
   (gltf) => {
