@@ -21,7 +21,7 @@ const MQTT_TOPIC = "festo/actuators/positions";
 const container = document.getElementById('canvas-container');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2b2d31);
+scene.background = new THREE.Color(0xd9d9d9);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(-0.32, 0.83, 0.97);
@@ -62,20 +62,20 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // --- LIGHTING SETUP ---
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.4);
-hemiLight.position.set(0, 20, 0);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+hemiLight.position.set(20, 20, 20);
 scene.add(hemiLight);
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 4.0);
+const keyLight = new THREE.DirectionalLight(0xffffff, 0.0);
 keyLight.position.set(-3, -3.5, -0.5);
 keyLight.castShadow = true;
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 2.4);
-fillLight.position.set(-5, 5, -5);
+const fillLight = new THREE.DirectionalLight(0x2e2e2e, 7.3);
+fillLight.position.set(12, 10, 1);
 scene.add(fillLight);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+const ambientLight = new THREE.AmbientLight(0x616161, 2);
 scene.add(ambientLight);
 
 // Camera light (headlight) - follows the viewer so the side of the model
