@@ -66,7 +66,7 @@ const arGroup = new THREE.Group();
 scene.add(arGroup);
 
 // --- GRID HELPER ---
-const gridHelper = new THREE.GridHelper(10, 20, 0x0091ff, 0xcccccc);
+const gridHelper = new THREE.GridHelper(10, 20, 0x002847, 0xadadad);   //Hugo (10, 20, 0x0091ff, 0xcccccc)
 gridHelper.position.y = -0.01;
 arGroup.add(gridHelper);
 
