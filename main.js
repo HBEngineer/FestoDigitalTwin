@@ -13,7 +13,7 @@ const MQTT_TOPIC = "festo/actuators/positions";
 const container = document.getElementById('canvas-container');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf4f6f9);
+scene.background = new THREE.Color(0x969696);   // (0xf4f6f9);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(-0.32, 0.83, 0.97);
