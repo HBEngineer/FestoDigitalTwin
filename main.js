@@ -42,8 +42,21 @@ renderer.xr.enabled = true;
 container.appendChild(renderer.domElement);
 
 // Append AR Button (WebXR — Android/Chrome only; iOS uses the separate
-// Quick Look button in index.html instead, since Safari has no WebXR AR)
-document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+// Quick Look button in index.html instead, since Safari has no WebXR AR).
+// We check support ourselves first, rather than letting ARButton show its
+// default disabled "AR NOT SUPPORTED" button, so unsupported devices see
+// no button at all.
+if (navigator.xr) {
+  navigator.xr.isSessionSupported('immersive-ar')
+    .then((supported) => {
+      if (supported) {
+        document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+      }
+    })
+    .catch(() => {
+      // Support check itself failed - treat as unsupported, show nothing.
+    });
+}
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -66,10 +79,16 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
 scene.add(ambientLight);
 
 // Camera light (headlight) - follows the viewer so the side of the model
-// facing the camera is always lit, regardless of orbit angle.
-const cameraLight = new THREE.PointLight(0xffffff, 1.5, 0, 1);
+// facing the camera is always lit, regardless of orbit angle. Using a
+// directional light (instead of the previous point light) avoids the
+// "on-camera flash" hotspot, where a light sitting at the same position as
+// the camera reflects straight back into the lens off glossy surfaces
+// (this was washing out the blue actuator housings).
+const cameraLight = new THREE.DirectionalLight(0xffffff, 0.8);
 camera.add(cameraLight);
-scene.add(camera); // camera must be in the scene graph for its child light to render
+cameraLight.target.position.set(0, 0, -1); // points forward, in the camera's local space
+camera.add(cameraLight.target);
+scene.add(camera); // camera must be in the scene graph for its child light/target to update
 
 // Group to hold model and grid
 const arGroup = new THREE.Group();
