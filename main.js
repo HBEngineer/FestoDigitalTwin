@@ -103,39 +103,52 @@ arGroup.add(gridHelper);
 let hitTestSource = null;
 let hitTestSourceRequested = false;
 let modelPlaced = false;
+let surfaceCurrentlyDetected = false;
+const hitMatrix = new THREE.Matrix4(); // stores the latest detected surface pose
+
+const arScanOverlay = document.getElementById('ar-scan-overlay');
+const arScanText = document.getElementById('ar-scan-text');
+
+function showArScanOverlay(text) {
+  if (arScanText) arScanText.innerText = text;
+  if (arScanOverlay) arScanOverlay.classList.add('visible');
+}
+
+function hideArScanOverlay() {
+  if (arScanOverlay) arScanOverlay.classList.remove('visible');
+}
+
+function placeModelAt(matrix) {
+  arGroup.position.setFromMatrixPosition(matrix);
+  arGroup.quaternion.setFromRotationMatrix(matrix);
+  arGroup.visible = true;
+}
 
 renderer.xr.addEventListener('sessionstart', () => {
   scene.background = null;
   gridHelper.visible = false;
   arGroup.visible = false; // hidden until placed on a detected surface
   modelPlaced = false;
+  surfaceCurrentlyDetected = false;
   hitTestSourceRequested = false;
   hitTestSource = null;
+  showArScanOverlay('Starting AR...');
 });
 renderer.xr.addEventListener('sessionend', () => {
   scene.background = new THREE.Color(document.getElementById('ctrl-bg-color').value);
   gridHelper.visible = true;
   arGroup.visible = true;
-  reticle.visible = false;
+  hideArScanOverlay();
 });
 
-// --- RETICLE (shows where the model will be placed) ---
-const reticle = new THREE.Mesh(
-  new THREE.RingGeometry(0.08, 0.1, 32).rotateX(-Math.PI / 2),
-  new THREE.MeshBasicMaterial({ color: 0x0091ff })
-);
-reticle.matrixAutoUpdate = false;
-reticle.visible = false;
-scene.add(reticle);
-
-// --- CONTROLLER (handles the screen tap in AR) ---
+// --- CONTROLLER (tap to reposition the model onto wherever you're currently
+// pointing, in case the auto-detected surface wasn't the one you wanted) ---
 const controller = renderer.xr.getController(0);
 controller.addEventListener('select', () => {
-  if (reticle.visible) {
-    arGroup.position.setFromMatrixPosition(reticle.matrix);
-    arGroup.quaternion.setFromRotationMatrix(reticle.matrix);
-    arGroup.visible = true;
+  if (surfaceCurrentlyDetected) {
+    placeModelAt(hitMatrix);
     modelPlaced = true;
+    hideArScanOverlay();
   }
 });
 scene.add(controller);
@@ -430,7 +443,7 @@ function animate(timestamp, frame) {
     sliderTBNode.position.z += (targetZ - sliderTBNode.position.z) * LERP_FACTOR;
   }
 
-  // --- WebXR hit-test: find real-world surfaces and update the reticle ---
+  // --- WebXR hit-test: find real-world surfaces, auto-place on first detection ---
   if (renderer.xr.isPresenting && frame) {
     const session = renderer.xr.getSession();
     const referenceSpace = renderer.xr.getReferenceSpace();
@@ -439,6 +452,9 @@ function animate(timestamp, frame) {
       session.requestReferenceSpace('viewer').then((viewerSpace) => {
         session.requestHitTestSource({ space: viewerSpace }).then((source) => {
           hitTestSource = source;
+          if (!modelPlaced) {
+            showArScanOverlay('Move your phone to find a surface');
+          }
         });
       });
       session.addEventListener('end', () => {
@@ -448,19 +464,25 @@ function animate(timestamp, frame) {
       hitTestSourceRequested = true;
     }
 
-    if (hitTestSource && !modelPlaced) {
+    if (hitTestSource) {
       const hitTestResults = frame.getHitTestResults(hitTestSource);
       if (hitTestResults.length > 0) {
         const hit = hitTestResults[0];
         const pose = hit.getPose(referenceSpace);
-        reticle.visible = true;
-        reticle.matrix.fromArray(pose.transform.matrix);
+        hitMatrix.fromArray(pose.transform.matrix);
+        surfaceCurrentlyDetected = true;
+
+        if (!modelPlaced) {
+          // Mirrors iOS Quick Look: place automatically the instant a
+          // surface is found, no tap required. Tapping later still works,
+          // as a way to reposition onto a different surface if needed.
+          placeModelAt(hitMatrix);
+          modelPlaced = true;
+          hideArScanOverlay();
+        }
       } else {
-        reticle.visible = false;
+        surfaceCurrentlyDetected = false;
       }
-    } else {
-      // Model already placed - no need to keep showing the reticle
-      reticle.visible = false;
     }
   }
 

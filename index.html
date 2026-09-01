@@ -200,6 +200,14 @@
   <!-- 3D Canvas Container -->
   <div id="canvas-container"></div>
 
+  <!-- Android WebXR AR Scanning Overlay -->
+  <div id="ar-scan-overlay" class="ar-scan-overlay">
+    <div class="ar-scan-card">
+      <div class="ar-spinner"></div>
+      <div id="ar-scan-text" class="ar-scan-text">Starting AR...</div>
+    </div>
+  </div>
+
   <!-- iOS Detection -->
   <script>
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
