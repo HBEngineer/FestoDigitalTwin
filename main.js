@@ -50,7 +50,14 @@ if (navigator.xr) {
   navigator.xr.isSessionSupported('immersive-ar')
     .then((supported) => {
       if (supported) {
-        document.body.appendChild(ARButton.createButton(renderer, { requiredFeatures: ['hit-test'] }));
+        document.body.appendChild(ARButton.createButton(renderer, {
+          requiredFeatures: ['hit-test'],
+          // Without this, regular page DOM (our scanning overlay) is hidden
+          // during the AR session - the XR compositor takes over full-screen
+          // rendering by default. 'root' is the DOM subtree allowed to show.
+          optionalFeatures: ['dom-overlay'],
+          domOverlay: { root: document.body }
+        }));
       }
     })
     .catch(() => {
@@ -104,6 +111,8 @@ let hitTestSource = null;
 let hitTestSourceRequested = false;
 let modelPlaced = false;
 let surfaceCurrentlyDetected = false;
+let firstDetectedAt = null; // when the surface was first seen, for stabilization
+const AUTO_PLACE_STABILIZE_MS = 600; // must track a surface steadily this long before auto-placing
 const hitMatrix = new THREE.Matrix4(); // stores the latest detected surface pose
 
 const arScanOverlay = document.getElementById('ar-scan-overlay');
@@ -130,6 +139,7 @@ renderer.xr.addEventListener('sessionstart', () => {
   arGroup.visible = false; // hidden until placed on a detected surface
   modelPlaced = false;
   surfaceCurrentlyDetected = false;
+  firstDetectedAt = null;
   hitTestSourceRequested = false;
   hitTestSource = null;
   showArScanOverlay('Starting AR...');
@@ -473,15 +483,29 @@ function animate(timestamp, frame) {
         surfaceCurrentlyDetected = true;
 
         if (!modelPlaced) {
-          // Mirrors iOS Quick Look: place automatically the instant a
-          // surface is found, no tap required. Tapping later still works,
-          // as a way to reposition onto a different surface if needed.
-          placeModelAt(hitMatrix);
-          modelPlaced = true;
-          hideArScanOverlay();
+          // Don't trust the very first hit - tracking is often noisy for a
+          // moment right after a surface is found. Require it to stay
+          // steady for AUTO_PLACE_STABILIZE_MS before committing, which is
+          // what was actually happening implicitly before (the user took a
+          // moment to aim before tapping) and is why placement felt more
+          // stable in the tap-to-place version.
+          if (firstDetectedAt === null) {
+            firstDetectedAt = timestamp;
+            showArScanOverlay('Hold steady...');
+          } else if (timestamp - firstDetectedAt > AUTO_PLACE_STABILIZE_MS) {
+            placeModelAt(hitMatrix);
+            modelPlaced = true;
+            hideArScanOverlay();
+          }
         }
       } else {
         surfaceCurrentlyDetected = false;
+        if (!modelPlaced) {
+          // Lost tracking before we finished stabilizing - reset the timer
+          // rather than placing based on a stale/interrupted read.
+          firstDetectedAt = null;
+          showArScanOverlay('Move your phone to find a surface');
+        }
       }
     }
   }
