@@ -21,7 +21,7 @@ const MQTT_TOPIC = "festo/actuators/positions";
 const container = document.getElementById('canvas-container');
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x2b2d31);
+scene.background = new THREE.Color(0xd9d9d9);
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(-0.32, 0.83, 0.97);
@@ -62,20 +62,20 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
 // --- LIGHTING SETUP ---
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.4);
-hemiLight.position.set(0, 20, 0);
+const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0);
+hemiLight.position.set(20, 20, 20);
 scene.add(hemiLight);
 
-const keyLight = new THREE.DirectionalLight(0xffffff, 4.0);
+const keyLight = new THREE.DirectionalLight(0xffffff, 0.0);
 keyLight.position.set(-3, -3.5, -0.5);
 keyLight.castShadow = true;
 scene.add(keyLight);
 
-const fillLight = new THREE.DirectionalLight(0xffffff, 2.4);
-fillLight.position.set(-5, 5, -5);
+const fillLight = new THREE.DirectionalLight(0x2e2e2e, 7.3);
+fillLight.position.set(12, 10, 1);
 scene.add(fillLight);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+const ambientLight = new THREE.AmbientLight(0x616161, 2);
 scene.add(ambientLight);
 
 // Camera light (headlight) - follows the viewer so the side of the model
@@ -95,50 +95,19 @@ const arGroup = new THREE.Group();
 scene.add(arGroup);
 
 // --- GRID HELPER ---
-const gridHelper = new THREE.GridHelper(10, 20, 0x004c99, 0x666666);
+const gridHelper = new THREE.GridHelper(10, 20, 0xFFFFFF, 0x444444);
 gridHelper.position.y = -0.01;
 arGroup.add(gridHelper);
 
 // WebXR Session handlers
-let hitTestSource = null;
-let hitTestSourceRequested = false;
-let modelPlaced = false;
-
 renderer.xr.addEventListener('sessionstart', () => {
   scene.background = null;
   gridHelper.visible = false;
-  arGroup.visible = false; // hidden until placed on a detected surface
-  modelPlaced = false;
-  hitTestSourceRequested = false;
-  hitTestSource = null;
 });
 renderer.xr.addEventListener('sessionend', () => {
   scene.background = new THREE.Color(document.getElementById('ctrl-bg-color').value);
   gridHelper.visible = true;
-  arGroup.visible = true;
-  reticle.visible = false;
 });
-
-// --- RETICLE (shows where the model will be placed) ---
-const reticle = new THREE.Mesh(
-  new THREE.RingGeometry(0.08, 0.1, 32).rotateX(-Math.PI / 2),
-  new THREE.MeshBasicMaterial({ color: 0x0091ff })
-);
-reticle.matrixAutoUpdate = false;
-reticle.visible = false;
-scene.add(reticle);
-
-// --- CONTROLLER (handles the screen tap in AR) ---
-const controller = renderer.xr.getController(0);
-controller.addEventListener('select', () => {
-  if (reticle.visible) {
-    arGroup.position.setFromMatrixPosition(reticle.matrix);
-    arGroup.quaternion.setFromRotationMatrix(reticle.matrix);
-    arGroup.visible = true;
-    modelPlaced = true;
-  }
-});
-scene.add(controller);
 
 // ==========================================
 // 3. RETRACTABLE UI & LIGHT CONTROL BINDINGS
@@ -156,11 +125,11 @@ const LIGHTING_STORAGE_KEY = 'festoDigitalTwin.lightingDefaults';
 // The values the scene was originally authored with. "Reset to Factory"
 // always returns to this configuration, regardless of what's been saved.
 const FACTORY_LIGHTING_CONFIG = {
-  hemi: { intensity: 1.4, position: { x: 0, y: 20, z: 0 } },
-  key: { intensity: 4.0, color: '#ffffff', position: { x: -3, y: -3.5, z: -0.5 } },
-  fill: { intensity: 2.4, color: '#ffffff', position: { x: -5, y: 5, z: -5 } },
-  ambient: { intensity: 0.7, color: '#ffffff' },
-  background: '#2b2d31'
+  hemi: { intensity: 1, position: { x: 20, y: 20, z: 20 } },
+  key: { intensity: 0.0, color: '#858585', position: { x: 20, y: 20, z: 20 } },
+  fill: { intensity: 7.3, color: '#2e2e2e', position: { x: 12, y: 10, z: 1 } },
+  ambient: { intensity: 2, color: '#616161' },
+  background: '#d9d9d9'
 };
 
 // Maps each slider/color input id to a (light, property) setter, and each
@@ -419,7 +388,7 @@ loader.load(
 // ==========================================
 // 5. ANIMATION & RENDER LOOP
 // ==========================================
-function animate(timestamp, frame) {
+function animate() {
   if (sliderBSNode) {
     const targetZ = initialBS.z + (targetBS * SCALE_FACTOR);
     sliderBSNode.position.z += (targetZ - sliderBSNode.position.z) * LERP_FACTOR;
@@ -428,40 +397,6 @@ function animate(timestamp, frame) {
   if (sliderTBNode) {
     const targetZ = initialTB.z + (targetTB * SCALE_FACTOR);
     sliderTBNode.position.z += (targetZ - sliderTBNode.position.z) * LERP_FACTOR;
-  }
-
-  // --- WebXR hit-test: find real-world surfaces and update the reticle ---
-  if (renderer.xr.isPresenting && frame) {
-    const session = renderer.xr.getSession();
-    const referenceSpace = renderer.xr.getReferenceSpace();
-
-    if (!hitTestSourceRequested) {
-      session.requestReferenceSpace('viewer').then((viewerSpace) => {
-        session.requestHitTestSource({ space: viewerSpace }).then((source) => {
-          hitTestSource = source;
-        });
-      });
-      session.addEventListener('end', () => {
-        hitTestSourceRequested = false;
-        hitTestSource = null;
-      });
-      hitTestSourceRequested = true;
-    }
-
-    if (hitTestSource && !modelPlaced) {
-      const hitTestResults = frame.getHitTestResults(hitTestSource);
-      if (hitTestResults.length > 0) {
-        const hit = hitTestResults[0];
-        const pose = hit.getPose(referenceSpace);
-        reticle.visible = true;
-        reticle.matrix.fromArray(pose.transform.matrix);
-      } else {
-        reticle.visible = false;
-      }
-    } else {
-      // Model already placed - no need to keep showing the reticle
-      reticle.visible = false;
-    }
   }
 
   controls.update();
