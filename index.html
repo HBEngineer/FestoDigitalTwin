@@ -5,11 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Festo Digital Twin</title>
 
-  <link rel="icon" type="image/x-icon" href="/FestoDigitalTwin/favicon.ico">
-  
-  <!-- Silence favicon 404 warning 
+  <!-- Silence favicon 404 warning -->
   <link rel="shortcut icon" href="#" />
-  -->
 
   <!-- Relative CSS link -->
   <link rel="stylesheet" href="styles.css" />
@@ -56,16 +53,16 @@
       <div class="control-section">
         <div class="control-section-title">Hemisphere Light</div>
         <div class="control-group">
-          <label for="ctrl-hemi">Intensity: <span id="lbl-hemi">1.4</span></label>
-          <input type="range" id="ctrl-hemi" min="0" max="10" step="0.1" value="1.4" />
+          <label for="ctrl-hemi">Intensity: <span id="lbl-hemi">1.0</span></label>
+          <input type="range" id="ctrl-hemi" min="0" max="10" step="0.1" value="1.0" />
         </div>
         <div class="control-group position-group">
           <label>Position</label>
           <div class="xyz-row">
             <div class="xyz-field">
               <span class="xyz-label">X</span>
-              <input type="range" id="ctrl-hemi-x" min="-20" max="20" step="0.5" value="0" />
-              <span class="xyz-value" id="lbl-hemi-x">0</span>
+              <input type="range" id="ctrl-hemi-x" min="-20" max="20" step="0.5" value="20" />
+              <span class="xyz-value" id="lbl-hemi-x">20</span>
             </div>
             <div class="xyz-field">
               <span class="xyz-label">Y</span>
@@ -74,8 +71,8 @@
             </div>
             <div class="xyz-field">
               <span class="xyz-label">Z</span>
-              <input type="range" id="ctrl-hemi-z" min="-20" max="20" step="0.5" value="0" />
-              <span class="xyz-value" id="lbl-hemi-z">0</span>
+              <input type="range" id="ctrl-hemi-z" min="-20" max="20" step="0.5" value="20" />
+              <span class="xyz-value" id="lbl-hemi-z">20</span>
             </div>
           </div>
         </div>
@@ -87,30 +84,30 @@
       <div class="control-section">
         <div class="control-section-title">Key Light</div>
         <div class="control-group">
-          <label for="ctrl-key">Intensity: <span id="lbl-key">4.0</span></label>
-          <input type="range" id="ctrl-key" min="0" max="10" step="0.1" value="4.0" />
+          <label for="ctrl-key">Intensity: <span id="lbl-key">0.0</span></label>
+          <input type="range" id="ctrl-key" min="0" max="10" step="0.1" value="0.0" />
         </div>
         <div class="control-group">
           <label for="ctrl-key-color">Color</label>
-          <input type="color" id="ctrl-key-color" value="#ffffff" />
+          <input type="color" id="ctrl-key-color" value="#858585" />
         </div>
         <div class="control-group position-group">
           <label>Position</label>
           <div class="xyz-row">
             <div class="xyz-field">
               <span class="xyz-label">X</span>
-              <input type="range" id="ctrl-key-x" min="-20" max="20" step="0.1" value="-3" />
-              <span class="xyz-value" id="lbl-key-x">-3</span>
+              <input type="range" id="ctrl-key-x" min="-20" max="20" step="0.1" value="20" />
+              <span class="xyz-value" id="lbl-key-x">20</span>
             </div>
             <div class="xyz-field">
               <span class="xyz-label">Y</span>
-              <input type="range" id="ctrl-key-y" min="-20" max="20" step="0.1" value="-3.5" />
-              <span class="xyz-value" id="lbl-key-y">-3.5</span>
+              <input type="range" id="ctrl-key-y" min="-20" max="20" step="0.1" value="20" />
+              <span class="xyz-value" id="lbl-key-y">20</span>
             </div>
             <div class="xyz-field">
               <span class="xyz-label">Z</span>
-              <input type="range" id="ctrl-key-z" min="-20" max="20" step="0.1" value="-0.5" />
-              <span class="xyz-value" id="lbl-key-z">-0.5</span>
+              <input type="range" id="ctrl-key-z" min="-20" max="20" step="0.1" value="20" />
+              <span class="xyz-value" id="lbl-key-z">20</span>
             </div>
           </div>
         </div>
@@ -122,30 +119,30 @@
       <div class="control-section">
         <div class="control-section-title">Fill Light</div>
         <div class="control-group">
-          <label for="ctrl-fill">Intensity: <span id="lbl-fill">2.4</span></label>
-          <input type="range" id="ctrl-fill" min="0" max="10" step="0.1" value="2.4" />
+          <label for="ctrl-fill">Intensity: <span id="lbl-fill">7.3</span></label>
+          <input type="range" id="ctrl-fill" min="0" max="10" step="0.1" value="7.3" />
         </div>
         <div class="control-group">
           <label for="ctrl-fill-color">Color</label>
-          <input type="color" id="ctrl-fill-color" value="#ffffff" />
+          <input type="color" id="ctrl-fill-color" value="#2e2e2e" />
         </div>
         <div class="control-group position-group">
           <label>Position</label>
           <div class="xyz-row">
             <div class="xyz-field">
               <span class="xyz-label">X</span>
-              <input type="range" id="ctrl-fill-x" min="-20" max="20" step="0.1" value="-5" />
-              <span class="xyz-value" id="lbl-fill-x">-5</span>
+              <input type="range" id="ctrl-fill-x" min="-20" max="20" step="0.1" value="12" />
+              <span class="xyz-value" id="lbl-fill-x">12</span>
             </div>
             <div class="xyz-field">
               <span class="xyz-label">Y</span>
-              <input type="range" id="ctrl-fill-y" min="-20" max="20" step="0.1" value="5" />
-              <span class="xyz-value" id="lbl-fill-y">5</span>
+              <input type="range" id="ctrl-fill-y" min="-20" max="20" step="0.1" value="10" />
+              <span class="xyz-value" id="lbl-fill-y">10</span>
             </div>
             <div class="xyz-field">
               <span class="xyz-label">Z</span>
-              <input type="range" id="ctrl-fill-z" min="-20" max="20" step="0.1" value="-5" />
-              <span class="xyz-value" id="lbl-fill-z">-5</span>
+              <input type="range" id="ctrl-fill-z" min="-20" max="20" step="0.1" value="1" />
+              <span class="xyz-value" id="lbl-fill-z">1</span>
             </div>
           </div>
         </div>
@@ -157,12 +154,12 @@
       <div class="control-section">
         <div class="control-section-title">Ambient Light</div>
         <div class="control-group">
-          <label for="ctrl-ambient">Intensity: <span id="lbl-ambient">0.7</span></label>
-          <input type="range" id="ctrl-ambient" min="0" max="5" step="0.1" value="0.7" />
+          <label for="ctrl-ambient">Intensity: <span id="lbl-ambient">2.0</span></label>
+          <input type="range" id="ctrl-ambient" min="0" max="5" step="0.1" value="2.0" />
         </div>
         <div class="control-group">
           <label for="ctrl-ambient-color">Color</label>
-          <input type="color" id="ctrl-ambient-color" value="#ffffff" />
+          <input type="color" id="ctrl-ambient-color" value="#616161" />
         </div>
       </div>
 
@@ -173,7 +170,7 @@
         <div class="control-section-title">Scene</div>
         <div class="control-group">
           <label for="ctrl-bg-color">Background Color</label>
-          <input type="color" id="ctrl-bg-color" value="#2b2d31" />
+          <input type="color" id="ctrl-bg-color" value="#d9d9d9" />
         </div>
       </div>
 

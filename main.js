@@ -100,14 +100,45 @@ gridHelper.position.y = -0.01;
 arGroup.add(gridHelper);
 
 // WebXR Session handlers
+let hitTestSource = null;
+let hitTestSourceRequested = false;
+let modelPlaced = false;
+
 renderer.xr.addEventListener('sessionstart', () => {
   scene.background = null;
   gridHelper.visible = false;
+  arGroup.visible = false; // hidden until placed on a detected surface
+  modelPlaced = false;
+  hitTestSourceRequested = false;
+  hitTestSource = null;
 });
 renderer.xr.addEventListener('sessionend', () => {
   scene.background = new THREE.Color(document.getElementById('ctrl-bg-color').value);
   gridHelper.visible = true;
+  arGroup.visible = true;
+  reticle.visible = false;
 });
+
+// --- RETICLE (shows where the model will be placed) ---
+const reticle = new THREE.Mesh(
+  new THREE.RingGeometry(0.08, 0.1, 32).rotateX(-Math.PI / 2),
+  new THREE.MeshBasicMaterial({ color: 0x0091ff })
+);
+reticle.matrixAutoUpdate = false;
+reticle.visible = false;
+scene.add(reticle);
+
+// --- CONTROLLER (handles the screen tap in AR) ---
+const controller = renderer.xr.getController(0);
+controller.addEventListener('select', () => {
+  if (reticle.visible) {
+    arGroup.position.setFromMatrixPosition(reticle.matrix);
+    arGroup.quaternion.setFromRotationMatrix(reticle.matrix);
+    arGroup.visible = true;
+    modelPlaced = true;
+  }
+});
+scene.add(controller);
 
 // ==========================================
 // 3. RETRACTABLE UI & LIGHT CONTROL BINDINGS
@@ -388,7 +419,7 @@ loader.load(
 // ==========================================
 // 5. ANIMATION & RENDER LOOP
 // ==========================================
-function animate() {
+function animate(timestamp, frame) {
   if (sliderBSNode) {
     const targetZ = initialBS.z + (targetBS * SCALE_FACTOR);
     sliderBSNode.position.z += (targetZ - sliderBSNode.position.z) * LERP_FACTOR;
@@ -397,6 +428,40 @@ function animate() {
   if (sliderTBNode) {
     const targetZ = initialTB.z + (targetTB * SCALE_FACTOR);
     sliderTBNode.position.z += (targetZ - sliderTBNode.position.z) * LERP_FACTOR;
+  }
+
+  // --- WebXR hit-test: find real-world surfaces and update the reticle ---
+  if (renderer.xr.isPresenting && frame) {
+    const session = renderer.xr.getSession();
+    const referenceSpace = renderer.xr.getReferenceSpace();
+
+    if (!hitTestSourceRequested) {
+      session.requestReferenceSpace('viewer').then((viewerSpace) => {
+        session.requestHitTestSource({ space: viewerSpace }).then((source) => {
+          hitTestSource = source;
+        });
+      });
+      session.addEventListener('end', () => {
+        hitTestSourceRequested = false;
+        hitTestSource = null;
+      });
+      hitTestSourceRequested = true;
+    }
+
+    if (hitTestSource && !modelPlaced) {
+      const hitTestResults = frame.getHitTestResults(hitTestSource);
+      if (hitTestResults.length > 0) {
+        const hit = hitTestResults[0];
+        const pose = hit.getPose(referenceSpace);
+        reticle.visible = true;
+        reticle.matrix.fromArray(pose.transform.matrix);
+      } else {
+        reticle.visible = false;
+      }
+    } else {
+      // Model already placed - no need to keep showing the reticle
+      reticle.visible = false;
+    }
   }
 
   controls.update();
